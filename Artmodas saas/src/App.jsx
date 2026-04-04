@@ -142,6 +142,17 @@ function MainApp({ scriptUrl }) {
     if (nv.pg === "credito_loja") setPars((x) => [...x, ...mkPar(nv)]);
   };
 
+  const delVenda = (vid) => {
+    const v = vmap[vid];
+    if (!v) return;
+    setVendas((x) => x.filter((vn) => vn.id !== vid));
+    setPars((x) => x.filter((p) => p.vendaId !== vid));
+    v.itens.forEach((it) => {
+      setProds((x) => x.map((p) => p.id === it.pid ? { ...p, estoque: p.estoque + it.qty } : p));
+      setMovs((x) => [...x, { id: uid(), pid: it.pid, tipo: "entrada", qty: it.qty, data: hoje(), motivo: "Estorno venda", vendaId: vid }]);
+    });
+  };
+
   const pagarPar = (id, val, data, obs) => {
     setPars((x) => x.map((p) => {
       if (p.id !== id) return p;
@@ -182,7 +193,7 @@ function MainApp({ scriptUrl }) {
       <div style={{ padding: "24px 20px", maxWidth: 1100, margin: "0 auto" }}>
         {tab === "painel"    && <Painel prods={prods} clis={clis} vendas={vendas} pars={pars} cmap={cmap} setTab={setTab} onPagar={(vid) => setModal({ type: "pagar", vid })} />}
         {tab === "estoque"   && <Estoque prods={prods} movs={movs} pmap={pmap} cmap={cmap} vmap={vmap} onNovoProd={() => setModal({ type: "prod" })} onEntrada={() => setModal({ type: "entrada" })} onEdit={(p) => setModal({ type: "prod", prod: p })} />}
-        {tab === "vendas"    && <Vendas vendas={vendas} cmap={cmap} pmap={pmap} pars={pars} onNova={() => setModal({ type: "venda" })} onPagar={(vid) => setModal({ type: "pagar", vid })} />}
+        {tab === "vendas"    && <Vendas vendas={vendas} cmap={cmap} pmap={pmap} pars={pars} onNova={() => setModal({ type: "venda" })} onPagar={(vid) => setModal({ type: "pagar", vid })} onExcluir={delVenda} />}
         {tab === "clientes"  && <Clientes clis={clis} vendas={vendas} pars={pars} pmap={pmap} onNovo={() => setModal({ type: "cli" })} onDetalhe={(c) => setModal({ type: "detCli", cli: c })} onPagar={(vid) => setModal({ type: "pagar", vid })} />}
         {tab === "cobrancas" && <Cobrancas pars={pars} vendas={vendas} cmap={cmap} onPagar={(vid) => setModal({ type: "pagar", vid })} />}
       </div>

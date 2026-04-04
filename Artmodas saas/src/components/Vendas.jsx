@@ -2,7 +2,7 @@ import { useState } from "react";
 import { R$, dtBR } from "../utils";
 import { PG, stPar, COR, LBL } from "../constants";
 
-export default function Vendas({ vendas, cmap, pmap, pars, onNova, onPagar }) {
+export default function Vendas({ vendas, cmap, pmap, pars, onNova, onPagar, onExcluir }) {
   const [busca, setBusca] = useState("");
   const filtradas = vendas.filter((v) => {
     const c = cmap[v.cliId];
@@ -74,6 +74,10 @@ export default function Vendas({ vendas, cmap, pmap, pars, onNova, onPagar }) {
                   {v.pg === "credito_loja" && pct < 100 && (
                     <button className="btn prim" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => onPagar(v.id)}>Registrar Pag.</button>
                   )}
+                  <button className="btn ghost" style={{ padding: "6px 12px", fontSize: 12, color: "#ef4444", borderColor: "#ef444444" }}
+                    onClick={() => { if (confirm("Excluir esta venda? O estoque será estornado.")) onExcluir(v.id); }}>
+                    Excluir
+                  </button>
                 </div>
               </div>
             </div>
