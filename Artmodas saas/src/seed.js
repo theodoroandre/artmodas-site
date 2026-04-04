@@ -16,3 +16,4 @@ export const mkPar = (v) => {
 export const VENDAS0 = [];
 export const PAR0 = [];
 export const MOV0 = [];
+export const LOG0 = [];

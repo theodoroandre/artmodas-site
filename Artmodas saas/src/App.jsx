@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { uid, hoje } from "./utils";
-import { mkPar, PROD0, CLI0, VENDAS0, PAR0, MOV0 } from "./seed";
+import { uid, hoje, agora } from "./utils";
+import { mkPar, PROD0, CLI0, VENDAS0, PAR0, MOV0, LOG0 } from "./seed";
 import { useGoogleSheet, useSheetLoader } from "./useGoogleSheets";
 import "./index.css";
 
@@ -9,6 +9,7 @@ import Estoque from "./components/Estoque";
 import Vendas from "./components/Vendas";
 import Clientes from "./components/Clientes";
 import Cobrancas from "./components/Cobrancas";
+import Logs from "./components/Logs";
 import ProdModal from "./components/ProdModal";
 import EntradaModal from "./components/EntradaModal";
 import CliModal from "./components/CliModal";
@@ -22,6 +23,7 @@ const TABS = [
   { id: "vendas",    l: "Vendas" },
   { id: "clientes",  l: "Clientes" },
   { id: "cobrancas", l: "Cobranças" },
+  { id: "logs",      l: "Logs" },
 ];
 
 function LoginScreen() {
@@ -105,19 +107,22 @@ function MainApp({ scriptUrl }) {
   const [vendas, setVendas, savingVendas]= useGoogleSheet("lc_vendas", VENDAS0, scriptUrl);
   const [pars, setPars, savingPars]      = useGoogleSheet("lc_pars", PAR0, scriptUrl);
   const [movs, setMovs, savingMovs]     = useGoogleSheet("lc_movs", MOV0, scriptUrl);
+  const [logs, setLogs, savingLogs]    = useGoogleSheet("lc_logs", LOG0, scriptUrl);
   const [modal, setModal]   = useState(null);
   const close = () => setModal(null);
 
-  const isSaving = savingProds || savingClis || savingVendas || savingPars || savingMovs;
+  const isSaving = savingProds || savingClis || savingVendas || savingPars || savingMovs || savingLogs;
 
-  const setters = useMemo(() => ({ setProds, setClis, setVendas, setPars, setMovs }), []);
+  const log = (cat, acao, desc) => setLogs((x) => [...x, { id: uid(), ts: agora(), cat, acao, desc }]);
+
+  const setters = useMemo(() => ({ setProds, setClis, setVendas, setPars, setMovs, setLogs }), []);
   const { loaded, error } = useSheetLoader(scriptUrl, setters);
 
   const logout = () => {
     localStorage.removeItem("lc_script_url");
     localStorage.removeItem("lc_script_pwd");
     // Clear cached data
-    ["lc_prods", "lc_clis", "lc_vendas", "lc_pars", "lc_movs"].forEach((k) => localStorage.removeItem(k));
+    ["lc_prods", "lc_clis", "lc_vendas", "lc_pars", "lc_movs", "lc_logs"].forEach((k) => localStorage.removeItem(k));
     window.location.reload();
   };
 
@@ -125,42 +130,52 @@ function MainApp({ scriptUrl }) {
   const cmap = Object.fromEntries(clis.map((c) => [c.id, c]));
   const vmap = Object.fromEntries(vendas.map((v) => [v.id, v]));
 
-  const addProd  = (p) => setProds((x) => [...x, { ...p, id: uid() }]);
-  const editProd = (p) => setProds((x) => x.map((q) => q.id === p.id ? p : q));
-  const editCli  = (c) => setClis((x) => x.map((q) => q.id === c.id ? c : q));
+  const addProd  = (p) => { setProds((x) => [...x, { ...p, id: uid() }]); log("Produto", "Cadastro", `Produto "${p.nome}" cadastrado`); };
+  const editProd = (p) => { setProds((x) => x.map((q) => q.id === p.id ? p : q)); log("Produto", "Edicao", `Produto "${p.nome}" editado`); };
+  const editCli  = (c) => { setClis((x) => x.map((q) => q.id === c.id ? c : q)); log("Cliente", "Edicao", `Cliente "${c.nome}" editado`); };
 
   const entrada = ({ pid, qty, data, obs }) => {
+    const nome = pmap[pid]?.nome || pid;
     setProds((x) => x.map((p) => p.id === pid ? { ...p, estoque: p.estoque + qty } : p));
     setMovs((x) => [...x, { id: uid(), pid, tipo: "entrada", qty, data, motivo: obs || "Entrada de estoque" }]);
+    log("Estoque", "Entrada", `+${qty} un. de "${nome}"${obs ? ` — ${obs}` : ""}`);
   };
 
   const addVenda = (v) => {
     const nv = { ...v, id: uid() };
+    const cli = cmap[nv.cliId];
     setVendas((x) => [...x, nv]);
     nv.itens.forEach((it) => {
       setProds((x) => x.map((p) => p.id === it.pid ? { ...p, estoque: Math.max(0, p.estoque - it.qty) } : p));
       setMovs((x) => [...x, { id: uid(), pid: it.pid, tipo: "saida", qty: it.qty, data: nv.data, motivo: "Venda", vendaId: nv.id }]);
     });
     if (nv.pg === "credito_loja") setPars((x) => [...x, ...mkPar(nv)]);
+    log("Venda", "Nova venda", `Venda para "${cli?.nome || "?"}" — ${nv.itens.length} item(ns), ${nv.pg}`);
   };
 
   const delVenda = (vid) => {
     const v = vmap[vid];
     if (!v) return;
+    const cli = cmap[v.cliId];
     setVendas((x) => x.filter((vn) => vn.id !== vid));
     setPars((x) => x.filter((p) => p.vendaId !== vid));
     v.itens.forEach((it) => {
       setProds((x) => x.map((p) => p.id === it.pid ? { ...p, estoque: p.estoque + it.qty } : p));
       setMovs((x) => [...x, { id: uid(), pid: it.pid, tipo: "entrada", qty: it.qty, data: hoje(), motivo: "Estorno venda", vendaId: vid }]);
     });
+    log("Venda", "Exclusao", `Venda para "${cli?.nome || "?"}" excluida com estorno`);
   };
 
   const pagarPar = (id, val, data, obs) => {
+    const par = pars.find((p) => p.id === id);
+    const v = par ? vmap[par.vendaId] : null;
+    const cli = v ? cmap[v.cliId] : null;
     setPars((x) => x.map((p) => {
       if (p.id !== id) return p;
       const np = Math.min(p.valor, +(p.pago + val).toFixed(2));
       return { ...p, pago: np, pagamentos: [...p.pagamentos, { id: uid(), val, data, obs }] };
     }));
+    log("Pagamento", "Recebimento", `R$ ${val.toFixed(2)} recebido de "${cli?.nome || "?"}" — parcela ${par?.num || "?"}`);
   };
 
   // Auth error — kick back to login
@@ -225,12 +240,13 @@ function MainApp({ scriptUrl }) {
         {tab === "vendas"    && <Vendas vendas={vendas} cmap={cmap} pmap={pmap} pars={pars} onNova={() => setModal({ type: "venda" })} onPagar={(vid) => setModal({ type: "pagar", vid })} onExcluir={delVenda} />}
         {tab === "clientes"  && <Clientes clis={clis} vendas={vendas} pars={pars} pmap={pmap} onNovo={() => setModal({ type: "cli" })} onEdit={(c) => setModal({ type: "cli", cli: c })} onDetalhe={(c) => setModal({ type: "detCli", cli: c })} onPagar={(vid) => setModal({ type: "pagar", vid })} />}
         {tab === "cobrancas" && <Cobrancas pars={pars} vendas={vendas} cmap={cmap} onPagar={(vid) => setModal({ type: "pagar", vid })} />}
+        {tab === "logs"      && <Logs logs={logs} />}
       </div>
 
       {/* Modals */}
       {modal?.type === "prod"    && <ProdModal    prod={modal.prod} onClose={close} onSave={(p) => { modal.prod ? editProd(p) : addProd(p); close(); }} />}
       {modal?.type === "entrada" && <EntradaModal prods={prods} onClose={close} onSave={(e) => { entrada(e); close(); }} />}
-      {modal?.type === "cli"     && <CliModal     cli={modal.cli} onClose={close} onSave={(c) => { modal.cli ? editCli(c) : setClis((x) => [...x, { ...c, id: uid(), cad: hoje() }]); close(); }} />}
+      {modal?.type === "cli"     && <CliModal     cli={modal.cli} onClose={close} onSave={(c) => { if (modal.cli) { editCli(c); } else { setClis((x) => [...x, { ...c, id: uid(), cad: hoje() }]); log("Cliente", "Cadastro", `Cliente "${c.nome}" cadastrado`); } close(); }} />}
       {modal?.type === "venda"   && <VendaModal   prods={prods} clis={clis} onClose={close} onSave={(v) => { addVenda(v); close(); }} />}
       {modal?.type === "detCli"  && <DetCliModal  cli={modal.cli} vendas={vendas.filter((v) => v.cliId === modal.cli.id)} pars={pars} pmap={pmap} onClose={close} onPagar={(vid) => { close(); setModal({ type: "pagar", vid }); }} />}
       {modal?.type === "pagar"   && <PagarModal   venda={vmap[modal.vid]} pars={pars.filter((p) => p.vendaId === modal.vid)} onClose={close} onPay={pagarPar} />}

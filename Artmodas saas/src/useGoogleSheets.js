@@ -6,6 +6,7 @@ const SHEET_MAP = {
   lc_vendas: "Vendas",
   lc_pars:   "Parcelamentos",
   lc_movs:   "Movimentacoes",
+  lc_logs:   "Logs",
 };
 
 const DEBOUNCE_MS = 1500;
@@ -107,6 +108,7 @@ export function useSheetLoader(scriptUrl, setters) {
         setters.setVendas(d.Vendas || []);
         setters.setPars(d.Parcelamentos || []);
         setters.setMovs(d.Movimentacoes || []);
+        setters.setLogs(d.Logs || []);
         markSheetReady();
         setLoaded(true);
       })
