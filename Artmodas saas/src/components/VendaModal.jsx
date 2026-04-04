@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { R$, hoje } from "../utils";
 import { PG } from "../constants";
+import SearchSelect from "./SearchSelect";
 
 export default function VendaModal({ prods, clis, onClose, onSave }) {
   const [f, setF] = useState({ cliId: "", data: hoje(), pg: "dinheiro", nLoja: 2, nCard: 1, itens: [] });
@@ -39,10 +40,12 @@ export default function VendaModal({ prods, clis, onClose, onSave }) {
           <div className="fr">
             <div className="fc">
               <label className="lbl">Cliente *</label>
-              <select className="inp" value={f.cliId} onChange={sf("cliId")}>
-                <option value="">Selecione...</option>
-                {clis.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
+              <SearchSelect
+                placeholder="Buscar cliente..."
+                value={f.cliId}
+                onChange={(v) => setF((p) => ({ ...p, cliId: v }))}
+                options={clis.map((c) => ({ value: c.id, label: c.nome, sub: c.tel }))}
+              />
             </div>
             <div className="fc">
               <label className="lbl">Data</label>
@@ -54,10 +57,12 @@ export default function VendaModal({ prods, clis, onClose, onSave }) {
             <label className="lbl">Itens da Venda *</label>
             <div style={{ background: "#1a1d24", borderRadius: 10, padding: 14 }}>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-                <select className="inp" style={{ flex: 2, minWidth: 130 }} value={item.pid} onChange={(e) => selProd(e.target.value)}>
-                  <option value="">Produto...</option>
-                  {prods.filter((p) => p.estoque > 0).map((p) => <option key={p.id} value={p.id}>{p.nome} (est:{p.estoque})</option>)}
-                </select>
+                <SearchSelect
+                  placeholder="Buscar produto..."
+                  value={item.pid}
+                  onChange={(v) => selProd(v)}
+                  options={prods.filter((p) => p.estoque > 0).map((p) => ({ value: p.id, label: p.nome, sub: `est: ${p.estoque}` }))}
+                />
                 <input className="inp" type="number" min="1" style={{ width: 65 }} placeholder="Qtd" value={item.qty} onChange={(e) => setItem((a) => ({ ...a, qty: e.target.value }))} />
                 <input className="inp" type="number" min="0" style={{ width: 95 }} placeholder="R$" value={item.preco} onChange={(e) => setItem((a) => ({ ...a, preco: e.target.value }))} />
                 <button className="btn prim" style={{ padding: "8px 14px", whiteSpace: "nowrap" }} onClick={addItem}>+ Add</button>
