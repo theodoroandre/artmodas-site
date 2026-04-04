@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { R$, dtBR, hoje } from "../utils";
 import { stPar } from "../constants";
 
 export default function Painel({ prods, clis, vendas, pars, cmap, setTab, onPagar }) {
+  const [showAmounts, setShowAmounts] = useState(true);
+  const mask = (v) => (showAmounts ? v : "R$ •••••");
   const estBaixo = prods.filter((p) => p.estoque <= p.minimo);
   const vencidas = pars.filter((p) => stPar(p) === "vencido");
   const totalVendido = vendas.reduce((a, v) => a + v.total, 0);
@@ -22,26 +25,36 @@ export default function Painel({ prods, clis, vendas, pars, cmap, setTab, onPaga
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-      <div>
-        <h1 className="sy" style={{ fontSize: 22, fontWeight: 700 }}>Painel</h1>
-        <p style={{ color: "#64748b", fontSize: 13, marginTop: 3 }}>Visão geral da loja</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <h1 className="sy" style={{ fontSize: 22, fontWeight: 700 }}>Painel</h1>
+          <p style={{ color: "#64748b", fontSize: 13, marginTop: 3 }}>Visão geral da loja</p>
+        </div>
+        <button
+          className="btn ghost"
+          onClick={() => setShowAmounts((p) => !p)}
+          title={showAmounts ? "Ocultar valores" : "Mostrar valores"}
+          style={{ fontSize: 18, padding: "6px 10px" }}
+        >
+          {showAmounts ? "🙈" : "👁"}
+        </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 14 }}>
+      <div className="painel-stats" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 14 }}>
         {[
-          { l: "Total Vendido",  v: R$(totalVendido),            cor: "#6366f1" },
-          { l: "Total Recebido", v: R$(totalPars + totalAvista), cor: "#22c55e" },
-          { l: "A Receber",      v: R$(totalPendente),           cor: "#f59e0b" },
-          { l: "Inadimplentes",  v: inadiSet.size,               cor: "#ef4444" },
+          { l: "Total Vendido",  v: mask(R$(totalVendido)),            cor: "#6366f1" },
+          { l: "Total Recebido", v: mask(R$(totalPars + totalAvista)), cor: "#22c55e" },
+          { l: "A Receber",      v: mask(R$(totalPendente)),           cor: "#f59e0b" },
+          { l: "Inadimplentes",  v: inadiSet.size,                     cor: "#ef4444" },
         ].map((s) => (
-          <div key={s.l} className="card" style={{ padding: 18 }}>
-            <div className="sy" style={{ fontSize: 26, fontWeight: 700, color: s.cor }}>{s.v}</div>
+          <div key={s.l} className="card" style={{ padding: 16 }}>
+            <div className="sy painel-stat-val" style={{ fontSize: 24, fontWeight: 700, color: s.cor }}>{s.v}</div>
             <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: ".06em", marginTop: 4 }}>{s.l}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div className="painel-grid">
         <div className="card" style={{ padding: 18 }}>
           <div className="sy" style={{ fontWeight: 700, marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span>⚠ Estoque Crítico</span>
@@ -49,14 +62,14 @@ export default function Painel({ prods, clis, vendas, pars, cmap, setTab, onPaga
           </div>
           {estBaixo.length === 0
             ? <p style={{ color: "#64748b", fontSize: 13 }}>Estoque OK ✓</p>
-            : <table><thead><tr><th>Produto</th><th>Saldo</th><th>Mín</th></tr></thead>
+            : <div style={{ overflowX: "auto" }}><table><thead><tr><th>Produto</th><th>Saldo</th><th>Mín</th></tr></thead>
                 <tbody>{estBaixo.map((p) => (
                   <tr key={p.id}>
                     <td>{p.nome}</td>
                     <td style={{ color: p.estoque === 0 ? "#ef4444" : "#f59e0b", fontWeight: 600 }}>{p.estoque}</td>
                     <td style={{ color: "#64748b" }}>{p.minimo}</td>
                   </tr>
-                ))}</tbody></table>}
+                ))}</tbody></table></div>}
         </div>
 
         <div className="card" style={{ padding: 18 }}>
@@ -66,7 +79,7 @@ export default function Painel({ prods, clis, vendas, pars, cmap, setTab, onPaga
           </div>
           {vencidas.length === 0
             ? <p style={{ color: "#64748b", fontSize: 13 }}>Nenhuma em atraso 🎉</p>
-            : <table><thead><tr><th>Cliente</th><th>Venceu</th><th>Saldo</th></tr></thead>
+            : <div style={{ overflowX: "auto" }}><table><thead><tr><th>Cliente</th><th>Venceu</th><th>Saldo</th></tr></thead>
                 <tbody>{vencidas.slice(0, 5).map((p) => {
                   const v = vendas.find((x) => x.id === p.vendaId);
                   const c = cmap[v?.cliId];
@@ -74,17 +87,17 @@ export default function Painel({ prods, clis, vendas, pars, cmap, setTab, onPaga
                     <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => onPagar(p.vendaId)}>
                       <td style={{ color: "#e2e8f0" }}>{c?.nome || "—"}</td>
                       <td style={{ color: "#ef4444" }}>{dtBR(p.vence)}</td>
-                      <td style={{ color: "#ef4444" }}>{R$(p.valor - p.pago)}</td>
+                      <td style={{ color: "#ef4444" }}>{mask(R$(p.valor - p.pago))}</td>
                     </tr>
                   );
-                })}</tbody></table>}
+                })}</tbody></table></div>}
         </div>
 
         <div className="card" style={{ padding: 18 }}>
           <div className="sy" style={{ fontWeight: 700, marginBottom: 12 }}>📅 Próximos Vencimentos</div>
           {proxVenc.length === 0
             ? <p style={{ color: "#64748b", fontSize: 13 }}>Nenhum</p>
-            : <table><thead><tr><th>Cliente</th><th>Vence</th><th>Valor</th></tr></thead>
+            : <div style={{ overflowX: "auto" }}><table><thead><tr><th>Cliente</th><th>Vence</th><th>Valor</th></tr></thead>
                 <tbody>{proxVenc.map((p) => {
                   const v = vendas.find((x) => x.id === p.vendaId);
                   const c = cmap[v?.cliId];
@@ -92,10 +105,10 @@ export default function Painel({ prods, clis, vendas, pars, cmap, setTab, onPaga
                     <tr key={p.id}>
                       <td>{c?.nome || "—"}</td>
                       <td style={{ color: "#94a3b8" }}>{dtBR(p.vence)}</td>
-                      <td style={{ color: "#f59e0b" }}>{R$(p.valor - p.pago)}</td>
+                      <td style={{ color: "#f59e0b" }}>{mask(R$(p.valor - p.pago))}</td>
                     </tr>
                   );
-                })}</tbody></table>}
+                })}</tbody></table></div>}
         </div>
 
         <div className="card" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>

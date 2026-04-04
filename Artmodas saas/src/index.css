@@ -20,3 +20,10 @@ tr:hover td{background:#1a1d2466}
 .sy{font-family:'Syne',sans-serif}
 .fr{display:flex;gap:12px}
 .fc{flex:1}
+.painel-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.painel-grid .card table{font-size:13px}
+@media(max-width:700px){
+  .painel-grid{grid-template-columns:1fr}
+  .painel-stats{grid-template-columns:1fr 1fr !important}
+  .painel-stat-val{font-size:20px !important}
+}
