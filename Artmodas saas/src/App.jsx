@@ -130,9 +130,14 @@ function MainApp({ scriptUrl }) {
   const cmap = Object.fromEntries(clis.map((c) => [c.id, c]));
   const vmap = Object.fromEntries(vendas.map((v) => [v.id, v]));
 
+  const diff = (old, novo, campos) => campos.map((k) => {
+    const a = old[k] ?? "", b = novo[k] ?? "";
+    return String(a) !== String(b) ? `${k}: "${a}" → "${b}"` : null;
+  }).filter(Boolean).join(", ");
+
   const addProd  = (p) => { setProds((x) => [...x, { ...p, id: uid() }]); log("Produto", "Cadastro", `Produto "${p.nome}" cadastrado`); };
-  const editProd = (p) => { setProds((x) => x.map((q) => q.id === p.id ? p : q)); log("Produto", "Edicao", `Produto "${p.nome}" editado`); };
-  const editCli  = (c) => { setClis((x) => x.map((q) => q.id === c.id ? c : q)); log("Cliente", "Edicao", `Cliente "${c.nome}" editado`); };
+  const editProd = (p) => { const old = pmap[p.id]; setProds((x) => x.map((q) => q.id === p.id ? p : q)); log("Produto", "Edicao", `Produto "${old?.nome || p.nome}": ${diff(old || {}, p, ["nome","preco","estoque"]) || "sem alteracoes"}`); };
+  const editCli  = (c) => { const old = cmap[c.id]; setClis((x) => x.map((q) => q.id === c.id ? c : q)); log("Cliente", "Edicao", `Cliente "${old?.nome || c.nome}": ${diff(old || {}, c, ["nome","tel","cpf","email","end"]) || "sem alteracoes"}`); };
 
   const entrada = ({ pid, qty, data, obs }) => {
     const nome = pmap[pid]?.nome || pid;
