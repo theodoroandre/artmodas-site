@@ -4,8 +4,8 @@ import { mkPar, PROD0, CLI0, VENDAS0, PAR0, MOV0 } from "./seed";
 import { useGoogleSheet, useSheetLoader } from "./useGoogleSheets";
 import "./index.css";
 
-// Paste your Google Apps Script web app URL here:
 const SCRIPT_URL = localStorage.getItem("lc_script_url") || "";
+const SCRIPT_PWD = localStorage.getItem("lc_script_pwd") || "";
 
 import Painel from "./components/Painel";
 import Estoque from "./components/Estoque";
@@ -37,6 +37,7 @@ export default function App() {
   const [modal, setModal]   = useState(null);
   const [showConfig, setShowConfig] = useState(!SCRIPT_URL);
   const [urlInput, setUrlInput] = useState(SCRIPT_URL);
+  const [pwdInput, setPwdInput] = useState(SCRIPT_PWD);
   const close = () => setModal(null);
 
   const isSaving = savingProds || savingClis || savingVendas || savingPars || savingMovs;
@@ -46,6 +47,7 @@ export default function App() {
 
   const saveUrl = () => {
     localStorage.setItem("lc_script_url", urlInput.trim());
+    localStorage.setItem("lc_script_pwd", pwdInput.trim());
     window.location.reload();
   };
 
@@ -140,6 +142,11 @@ export default function App() {
               placeholder="https://script.google.com/macros/s/.../exec"
               style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0d0f14", color: "#e2e8f0", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
             />
+            <input
+              type="password" value={pwdInput} onChange={(e) => setPwdInput(e.target.value)}
+              placeholder="Senha de acesso"
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0d0f14", color: "#e2e8f0", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box", marginTop: 8 }}
+            />
             {error && <div style={{ marginTop: 8, color: "#ef4444", fontSize: 12 }}>Erro: {error}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end" }}>
               {SCRIPT_URL && (
@@ -151,7 +158,7 @@ export default function App() {
                 Salvar e Conectar
               </button>
               {SCRIPT_URL && (
-                <button onClick={() => { localStorage.removeItem("lc_script_url"); window.location.reload(); }} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #ef4444", background: "transparent", color: "#ef4444", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>
+                <button onClick={() => { localStorage.removeItem("lc_script_url"); localStorage.removeItem("lc_script_pwd"); window.location.reload(); }} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #ef4444", background: "transparent", color: "#ef4444", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>
                   Desconectar
                 </button>
               )}

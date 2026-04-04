@@ -10,6 +10,10 @@ const SHEET_MAP = {
 
 const DEBOUNCE_MS = 1500;
 
+function getPwd() {
+  return localStorage.getItem("lc_script_pwd") || "";
+}
+
 /**
  * Hook that mirrors useLocalStorage API but persists to Google Sheets.
  * Keeps localStorage as a fast cache and syncs to Sheets in the background.
@@ -17,7 +21,6 @@ const DEBOUNCE_MS = 1500;
 export function useGoogleSheet(key, fallback, scriptUrl) {
   const sheetName = SHEET_MAP[key];
 
-  // Init from localStorage cache (instant load)
   const [value, setValue] = useState(() => {
     try {
       const stored = localStorage.getItem(key);
@@ -32,14 +35,10 @@ export function useGoogleSheet(key, fallback, scriptUrl) {
   const latestRef = useRef(value);
   latestRef.current = value;
 
-  // Keep localStorage in sync (fast cache)
   useEffect(() => {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch { /* ignore */ }
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
   }, [key, value]);
 
-  // Debounced save to Google Sheets
   useEffect(() => {
     if (!scriptUrl) return;
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -47,10 +46,15 @@ export function useGoogleSheet(key, fallback, scriptUrl) {
       setSaving(true);
       fetch(scriptUrl, {
         method: "POST",
-        body: JSON.stringify({ action: "write", sheet: sheetName, data: latestRef.current }),
+        body: JSON.stringify({ action: "write", sheet: sheetName, data: latestRef.current, pwd: getPwd() }),
       })
         .then((r) => r.json())
-        .then((r) => { if (!r.ok) console.warn("Sheet save error:", r.error); })
+        .then((r) => {
+          if (!r.ok) {
+            if (r.error === "auth") console.error("Senha incorreta — dados não foram salvos.");
+            else console.warn("Sheet save error:", r.error);
+          }
+        })
         .catch((e) => console.warn("Sheet save failed:", e))
         .finally(() => setSaving(false));
     }, DEBOUNCE_MS);
@@ -75,10 +79,15 @@ export function useSheetLoader(scriptUrl, setters) {
     }
     setLoaded(false);
     setError(null);
-    fetch(scriptUrl + "?action=readAll")
+    const pwd = getPwd();
+    fetch(scriptUrl + "?action=readAll&pwd=" + encodeURIComponent(pwd))
       .then((r) => r.json())
       .then((r) => {
-        if (!r.ok) { setError(r.error); setLoaded(true); return; }
+        if (!r.ok) {
+          setError(r.error === "auth" ? "Senha incorreta" : r.error);
+          setLoaded(true);
+          return;
+        }
         const d = r.data;
         if (d.Produtos?.length)       setters.setProds(d.Produtos);
         if (d.Clientes?.length)       setters.setClis(d.Clientes);
@@ -90,7 +99,7 @@ export function useSheetLoader(scriptUrl, setters) {
       .catch((e) => {
         console.warn("Sheet load failed:", e);
         setError(e.message);
-        setLoaded(true); // still show app with localStorage cache
+        setLoaded(true);
       });
   }, [scriptUrl, setters]);
 
