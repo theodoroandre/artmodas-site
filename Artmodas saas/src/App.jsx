@@ -99,6 +99,7 @@ export default function App() {
 
 function MainApp({ scriptUrl }) {
   const [tab, setTab]       = useState("painel");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [prods, setProds, savingProds]   = useGoogleSheet("lc_prods", PROD0, scriptUrl);
   const [clis, setClis, savingClis]      = useGoogleSheet("lc_clis", CLI0, scriptUrl);
   const [vendas, setVendas, savingVendas]= useGoogleSheet("lc_vendas", VENDAS0, scriptUrl);
@@ -170,14 +171,18 @@ function MainApp({ scriptUrl }) {
   return (
     <div style={{ fontFamily: "'DM Mono','Courier New',monospace", background: "#0d0f14", minHeight: "100vh", color: "#e2e8f0" }}>
       {/* Nav */}
-      <div style={{ background: "#0d0f14", borderBottom: "1px solid #1e2230", padding: "0 22px", display: "flex", alignItems: "center", gap: 18, position: "sticky", top: 0, zIndex: 50 }}>
+      <div className="topbar" style={{ background: "#0d0f14", borderBottom: "1px solid #1e2230", padding: "0 22px", display: "flex", alignItems: "center", gap: 18, position: "sticky", top: 0, zIndex: 50 }}>
+        <button className="hamburger" onClick={() => setMenuOpen(true)}
+          style={{ display: "none", background: "none", border: "none", color: "#e2e8f0", fontSize: 22, cursor: "pointer", padding: "6px 4px", lineHeight: 1 }}>
+          ☰
+        </button>
         <div className="sy" style={{ fontWeight: 800, fontSize: 17, color: "#6366f1", padding: "15px 0", letterSpacing: "-.02em" }}>
           LOJA<span style={{ color: "#e2e8f0" }}>CTRL</span>
           <span style={{ fontSize: 9, marginLeft: 6, color: isSaving ? "#f59e0b" : "#22c55e", verticalAlign: "middle" }}>
             {isSaving ? "salvando..." : "sync"}
           </span>
         </div>
-        <nav style={{ display: "flex", gap: 2, overflowX: "auto", flex: 1 }}>
+        <nav className="nav-desktop" style={{ display: "flex", gap: 2, overflowX: "auto", flex: 1 }}>
           {TABS.map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)} className="btn"
               style={{ padding: "5px 13px", borderRadius: 7, fontSize: 13, background: tab === t.id ? "#1e2230" : "transparent", color: tab === t.id ? "#e2e8f0" : "#64748b", border: "none", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
@@ -185,7 +190,30 @@ function MainApp({ scriptUrl }) {
             </button>
           ))}
         </nav>
-        <button onClick={logout} style={{ padding: "5px 12px", borderRadius: 7, fontSize: 12, background: "transparent", color: "#64748b", border: "1px solid #334155", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+        <button className="btn-sair-desktop" onClick={logout} style={{ padding: "5px 12px", borderRadius: 7, fontSize: 12, background: "transparent", color: "#64748b", border: "1px solid #334155", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+          Sair
+        </button>
+      </div>
+
+      {/* Side panel (mobile) */}
+      {menuOpen && <div className="side-overlay" onClick={() => setMenuOpen(false)} />}
+      <div className={`side-panel ${menuOpen ? "open" : ""}`}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <div className="sy" style={{ fontWeight: 800, fontSize: 17, color: "#6366f1", letterSpacing: "-.02em" }}>
+            LOJA<span style={{ color: "#e2e8f0" }}>CTRL</span>
+          </div>
+          <button onClick={() => setMenuOpen(false)} style={{ background: "none", border: "none", color: "#64748b", fontSize: 20, cursor: "pointer" }}>✕</button>
+        </div>
+        <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {TABS.map((t) => (
+            <button key={t.id} onClick={() => { setTab(t.id); setMenuOpen(false); }} className="btn"
+              style={{ padding: "10px 14px", borderRadius: 8, fontSize: 14, textAlign: "left", background: tab === t.id ? "#1e2230" : "transparent", color: tab === t.id ? "#e2e8f0" : "#94a3b8", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+              {t.l}
+            </button>
+          ))}
+        </nav>
+        <button onClick={() => { setMenuOpen(false); logout(); }}
+          style={{ marginTop: 24, padding: "10px 14px", borderRadius: 8, fontSize: 13, width: "100%", textAlign: "left", background: "transparent", color: "#ef4444", border: "1px solid #7f1d1d44", cursor: "pointer", fontFamily: "inherit" }}>
           Sair
         </button>
       </div>
