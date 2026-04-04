@@ -127,6 +127,7 @@ function MainApp({ scriptUrl }) {
 
   const addProd  = (p) => setProds((x) => [...x, { ...p, id: uid() }]);
   const editProd = (p) => setProds((x) => x.map((q) => q.id === p.id ? p : q));
+  const editCli  = (c) => setClis((x) => x.map((q) => q.id === c.id ? c : q));
 
   const entrada = ({ pid, qty, data, obs }) => {
     setProds((x) => x.map((p) => p.id === pid ? { ...p, estoque: p.estoque + qty } : p));
@@ -222,14 +223,14 @@ function MainApp({ scriptUrl }) {
         {tab === "painel"    && <Painel prods={prods} clis={clis} vendas={vendas} pars={pars} cmap={cmap} setTab={setTab} onPagar={(vid) => setModal({ type: "pagar", vid })} />}
         {tab === "estoque"   && <Estoque prods={prods} movs={movs} pmap={pmap} cmap={cmap} vmap={vmap} onNovoProd={() => setModal({ type: "prod" })} onEntrada={() => setModal({ type: "entrada" })} onEdit={(p) => setModal({ type: "prod", prod: p })} />}
         {tab === "vendas"    && <Vendas vendas={vendas} cmap={cmap} pmap={pmap} pars={pars} onNova={() => setModal({ type: "venda" })} onPagar={(vid) => setModal({ type: "pagar", vid })} onExcluir={delVenda} />}
-        {tab === "clientes"  && <Clientes clis={clis} vendas={vendas} pars={pars} pmap={pmap} onNovo={() => setModal({ type: "cli" })} onDetalhe={(c) => setModal({ type: "detCli", cli: c })} onPagar={(vid) => setModal({ type: "pagar", vid })} />}
+        {tab === "clientes"  && <Clientes clis={clis} vendas={vendas} pars={pars} pmap={pmap} onNovo={() => setModal({ type: "cli" })} onEdit={(c) => setModal({ type: "cli", cli: c })} onDetalhe={(c) => setModal({ type: "detCli", cli: c })} onPagar={(vid) => setModal({ type: "pagar", vid })} />}
         {tab === "cobrancas" && <Cobrancas pars={pars} vendas={vendas} cmap={cmap} onPagar={(vid) => setModal({ type: "pagar", vid })} />}
       </div>
 
       {/* Modals */}
       {modal?.type === "prod"    && <ProdModal    prod={modal.prod} onClose={close} onSave={(p) => { modal.prod ? editProd(p) : addProd(p); close(); }} />}
       {modal?.type === "entrada" && <EntradaModal prods={prods} onClose={close} onSave={(e) => { entrada(e); close(); }} />}
-      {modal?.type === "cli"     && <CliModal     onClose={close} onSave={(c) => { setClis((x) => [...x, { ...c, id: uid(), cad: hoje() }]); close(); }} />}
+      {modal?.type === "cli"     && <CliModal     cli={modal.cli} onClose={close} onSave={(c) => { modal.cli ? editCli(c) : setClis((x) => [...x, { ...c, id: uid(), cad: hoje() }]); close(); }} />}
       {modal?.type === "venda"   && <VendaModal   prods={prods} clis={clis} onClose={close} onSave={(v) => { addVenda(v); close(); }} />}
       {modal?.type === "detCli"  && <DetCliModal  cli={modal.cli} vendas={vendas.filter((v) => v.cliId === modal.cli.id)} pars={pars} pmap={pmap} onClose={close} onPagar={(vid) => { close(); setModal({ type: "pagar", vid }); }} />}
       {modal?.type === "pagar"   && <PagarModal   venda={vmap[modal.vid]} pars={pars.filter((p) => p.vendaId === modal.vid)} onClose={close} onPay={pagarPar} />}

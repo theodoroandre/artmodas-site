@@ -2,7 +2,7 @@ import { useState } from "react";
 import { R$ } from "../utils";
 import { stPar } from "../constants";
 
-export default function Clientes({ clis, vendas, pars, pmap, onNovo, onDetalhe, onPagar }) {
+export default function Clientes({ clis, vendas, pars, pmap, onNovo, onEdit, onDetalhe, onPagar }) {
   const [busca, setBusca] = useState("");
   const filtrados = clis.filter(
     (c) => c.nome.toLowerCase().includes(busca.toLowerCase()) || c.tel.includes(busca)
@@ -40,7 +40,10 @@ export default function Clientes({ clis, vendas, pars, pmap, onNovo, onDetalhe, 
                         ? <span className="badge" style={{ background: "#78350f22", color: "#fbbf24" }}>Ativo</span>
                         : <span className="badge" style={{ background: "#14532d22", color: "#4ade80" }}>OK</span>}
                   </td>
-                  <td><button className="btn ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => onDetalhe(c)}>Detalhes</button></td>
+                  <td style={{ display: "flex", gap: 4 }}>
+                    <button className="btn ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => onEdit(c)}>Editar</button>
+                    <button className="btn ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => onDetalhe(c)}>Detalhes</button>
+                  </td>
                 </tr>
               );
             })}

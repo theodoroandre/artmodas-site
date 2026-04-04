@@ -1,12 +1,12 @@
 import { useState } from "react";
 
-export default function CliModal({ onClose, onSave }) {
-  const [f, setF] = useState({ nome: "", tel: "", email: "", cpf: "", end: "" });
+export default function CliModal({ cli, onClose, onSave }) {
+  const [f, setF] = useState(cli ? { nome: cli.nome, tel: cli.tel || "", email: cli.email || "", cpf: cli.cpf || "", end: cli.end || "" } : { nome: "", tel: "", email: "", cpf: "", end: "" });
   const s = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   return (
     <div className="ov" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="mod">
-        <div className="sy" style={{ fontWeight: 700, fontSize: 18, marginBottom: 20 }}>Novo Cliente</div>
+        <div className="sy" style={{ fontWeight: 700, fontSize: 18, marginBottom: 20 }}>{cli ? "Editar" : "Novo"} Cliente</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
           <div><label className="lbl">Nome *</label><input className="inp" value={f.nome} onChange={s("nome")} placeholder="Nome completo" /></div>
           <div className="fr">
@@ -18,7 +18,7 @@ export default function CliModal({ onClose, onSave }) {
         </div>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 22 }}>
           <button className="btn ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn prim" disabled={!f.nome} onClick={() => onSave(f)} style={{ opacity: f.nome ? 1 : .4 }}>Salvar</button>
+          <button className="btn prim" disabled={!f.nome} onClick={() => onSave(cli ? { ...cli, ...f } : f)} style={{ opacity: f.nome ? 1 : .4 }}>Salvar</button>
         </div>
       </div>
     </div>
