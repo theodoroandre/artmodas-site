@@ -8,7 +8,7 @@ export default function Estoque({ prods, movs, pmap, cmap, vmap, onNovoProd, onE
 
   const cats = [...new Set(prods.map((p) => p.cat))];
   const filtrados = prods.filter(
-    (p) => p.nome.toLowerCase().includes(busca.toLowerCase()) && (cat === "todas" || p.cat === cat)
+    (p) => (p.nome.toLowerCase().includes(busca.toLowerCase()) || (p.cod && p.cod.includes(busca))) && (cat === "todas" || p.cat === cat)
   );
 
   return (
@@ -34,13 +34,14 @@ export default function Estoque({ prods, movs, pmap, cmap, vmap, onNovoProd, onE
 
       <div className="card">
         <table>
-          <thead><tr><th>Produto</th><th>Categoria</th><th>Custo</th><th>Preço Venda</th><th>Saldo</th><th>Mínimo</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Codigo</th><th>Produto</th><th>Categoria</th><th>Custo</th><th>Preço Venda</th><th>Saldo</th><th>Mínimo</th><th>Status</th><th></th></tr></thead>
           <tbody>
             {filtrados.map((p) => {
               const crit = p.estoque <= p.minimo;
               const zero = p.estoque === 0;
               return (
                 <tr key={p.id}>
+                  <td style={{ color: "#64748b", fontSize: 12 }}>{p.cod || "—"}</td>
                   <td style={{ fontWeight: 500 }}>{p.nome}</td>
                   <td style={{ color: "#64748b" }}>{p.cat}</td>
                   <td style={{ color: "#64748b" }}>{R$(p.custo)}</td>
@@ -59,7 +60,7 @@ export default function Estoque({ prods, movs, pmap, cmap, vmap, onNovoProd, onE
                 </tr>
               );
             })}
-            {filtrados.length === 0 && <tr><td colSpan={8} style={{ textAlign: "center", color: "#64748b", padding: 28 }}>Nenhum produto</td></tr>}
+            {filtrados.length === 0 && <tr><td colSpan={9} style={{ textAlign: "center", color: "#64748b", padding: 28 }}>Nenhum produto</td></tr>}
           </tbody>
         </table>
       </div>

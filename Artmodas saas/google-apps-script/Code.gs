@@ -10,7 +10,7 @@
  * 6. Copy the deployment URL and paste it in the app's config
  */
 
-const SHEET_NAMES = ['Produtos', 'Clientes', 'Vendas', 'Parcelamentos', 'Movimentacoes'];
+const SHEET_NAMES = ['Produtos', 'Clientes', 'Vendas', 'Parcelamentos', 'Movimentacoes', 'Logs'];
 
 // ---- Password ----
 

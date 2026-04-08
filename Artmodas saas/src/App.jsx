@@ -136,7 +136,7 @@ function MainApp({ scriptUrl }) {
   }).filter(Boolean).join(", ");
 
   const addProd  = (p) => { setProds((x) => [...x, { ...p, id: uid() }]); log("Produto", "Cadastro", `Produto "${p.nome}" cadastrado`); };
-  const editProd = (p) => { const old = pmap[p.id]; setProds((x) => x.map((q) => q.id === p.id ? p : q)); log("Produto", "Edicao", `Produto "${old?.nome || p.nome}": ${diff(old || {}, p, ["nome","preco","estoque"]) || "sem alteracoes"}`); };
+  const editProd = (p) => { const old = pmap[p.id]; setProds((x) => x.map((q) => q.id === p.id ? p : q)); log("Produto", "Edicao", `Produto "${old?.nome || p.nome}": ${diff(old || {}, p, ["cod","nome","preco","estoque"]) || "sem alteracoes"}`); };
   const editCli  = (c) => { const old = cmap[c.id]; setClis((x) => x.map((q) => q.id === c.id ? c : q)); log("Cliente", "Edicao", `Cliente "${old?.nome || c.nome}": ${diff(old || {}, c, ["nome","tel","cpf","email","end"]) || "sem alteracoes"}`); };
 
   const entrada = ({ pid, qty, data, obs }) => {

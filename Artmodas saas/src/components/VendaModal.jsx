@@ -2,12 +2,21 @@ import { useState } from "react";
 import { R$, hoje } from "../utils";
 import { PG } from "../constants";
 import SearchSelect from "./SearchSelect";
+import BarcodeScanner from "./BarcodeScanner";
 
 export default function VendaModal({ prods, clis, onClose, onSave }) {
   const [f, setF] = useState({ cliId: "", data: hoje(), pg: "dinheiro", nLoja: 2, nCard: 1, itens: [] });
   const [item, setItem] = useState({ pid: "", qty: "1", preco: "" });
+  const [scanning, setScanning] = useState(false);
   const sf = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   const pmap = Object.fromEntries(prods.map((p) => [p.id, p]));
+
+  const onBarcode = (code) => {
+    setScanning(false);
+    const found = prods.find((p) => p.cod === code);
+    if (!found) return alert(`Nenhum produto encontrado com codigo "${code}"`);
+    selProd(found.id);
+  };
 
   const selProd = (pid) => {
     const p = prods.find((x) => x.id === pid);
@@ -61,8 +70,9 @@ export default function VendaModal({ prods, clis, onClose, onSave }) {
                   placeholder="Buscar produto..."
                   value={item.pid}
                   onChange={(v) => selProd(v)}
-                  options={prods.filter((p) => p.estoque > 0).map((p) => ({ value: p.id, label: p.nome, sub: `est: ${p.estoque}` }))}
+                  options={prods.filter((p) => p.estoque > 0).map((p) => ({ value: p.id, label: p.nome, sub: `${p.cod ? p.cod + " · " : ""}est: ${p.estoque}` }))}
                 />
+                <button className="btn ghost" type="button" onClick={() => setScanning(true)} style={{ padding: "8px 12px", fontSize: 16 }} title="Escanear codigo de barras">📷</button>
                 <input className="inp" type="number" min="1" style={{ width: 65 }} placeholder="Qtd" value={item.qty} onChange={(e) => setItem((a) => ({ ...a, qty: e.target.value }))} />
                 <input className="inp" type="number" min="0" style={{ width: 95 }} placeholder="R$" value={item.preco} onChange={(e) => setItem((a) => ({ ...a, preco: e.target.value }))} />
                 <button className="btn prim" style={{ padding: "8px 14px", whiteSpace: "nowrap" }} onClick={addItem}>+ Add</button>
@@ -131,6 +141,7 @@ export default function VendaModal({ prods, clis, onClose, onSave }) {
           <button className="btn prim" disabled={!valid} onClick={() => onSave({ ...f, nLoja: +f.nLoja, nCard: +f.nCard, total })} style={{ opacity: valid ? 1 : .4 }}>Registrar Venda</button>
         </div>
       </div>
+      {scanning && <BarcodeScanner onScan={onBarcode} onClose={() => setScanning(false)} />}
     </div>
   );
 }
