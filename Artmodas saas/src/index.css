@@ -8,7 +8,7 @@ input,select,textarea{font-family:inherit}
 .btn{cursor:pointer;border:none;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;padding:9px 17px;transition:all .15s}
 .prim{background:#6366f1;color:#fff}.prim:hover{background:#4f52d4}
 .ghost{background:transparent;color:#94a3b8;border:1px solid #2d3244}.ghost:hover{background:#1e2230;color:#e2e8f0}
-.card{background:#161921;border:1px solid #1e2230;border-radius:12px}
+.card{background:#161921;border:1px solid #1e2230;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;padding:9px 13px;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #1e2230;font-weight:500}
@@ -18,8 +18,8 @@ tr:hover td{background:#1a1d2466}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
 .mod{background:#161921;border:1px solid #2d3244;border-radius:16px;padding:26px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto}
 .sy{font-family:'Syne',sans-serif}
-.fr{display:flex;gap:12px}
-.fc{flex:1}
+.fr{display:flex;gap:12px;flex-wrap:wrap}
+.fc{flex:1;min-width:140px}
 .painel-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .painel-grid .card table{font-size:13px}
 .side-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60}

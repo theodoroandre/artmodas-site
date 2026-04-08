@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { hoje } from "../utils";
+import SearchSelect from "./SearchSelect";
 
 export default function EntradaModal({ prods, onClose, onSave }) {
   const [f, setF] = useState({ pid: "", qty: "", data: hoje(), obs: "" });
@@ -13,10 +14,12 @@ export default function EntradaModal({ prods, onClose, onSave }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
           <div>
             <label className="lbl">Produto *</label>
-            <select className="inp" value={f.pid} onChange={s("pid")}>
-              <option value="">Selecione...</option>
-              {prods.map((p) => <option key={p.id} value={p.id}>{p.nome} — saldo atual: {p.estoque}</option>)}
-            </select>
+            <SearchSelect
+              placeholder="Buscar produto..."
+              value={f.pid}
+              onChange={(v) => setF((p) => ({ ...p, pid: v }))}
+              options={prods.map((p) => ({ value: p.id, label: p.nome, sub: `saldo: ${p.estoque}` }))}
+            />
           </div>
           <div className="fr">
             <div className="fc"><label className="lbl">Quantidade *</label><input className="inp" type="number" min="1" value={f.qty} onChange={s("qty")} /></div>
