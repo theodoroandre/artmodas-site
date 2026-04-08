@@ -108,7 +108,7 @@ export function useSheetLoader(scriptUrl, setters) {
         setters.setVendas(d.Vendas || []);
         setters.setPars(d.Parcelamentos || []);
         setters.setMovs(d.Movimentacoes || []);
-        setters.setLogs(d.Logs || []);
+        if (d.Logs !== undefined) setters.setLogs(d.Logs);
         markSheetReady();
         setLoaded(true);
       })
