@@ -81,7 +81,6 @@ export default function AdminPanel({ supa, currentUserId }) {
         </div>
         {error && <div style={{ marginTop: 8, color: "#ef4444", fontSize: 12 }}>{error}</div>}
         {success && <div style={{ marginTop: 8, color: "#22c55e", fontSize: 12 }}>{success}</div>}
-        <p style={{ marginTop: 8, color: "#64748b", fontSize: 11 }}>Desative "Confirm email" em Supabase → Auth → Providers → Email para criação imediata.</p>
       </div>
 
       {/* User list */}
