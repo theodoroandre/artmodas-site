@@ -64,6 +64,8 @@ function LoginScreen({ supa, onLogin }) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) { setError("Preencha email e senha."); return; }
@@ -73,18 +75,55 @@ function LoginScreen({ supa, onLogin }) {
     else onLogin();
   };
 
+  const handleForgot = async () => {
+    if (!email) { setError("Digite seu email primeiro."); return; }
+    setLoading(true); setError(null);
+    const { error: err } = await supa.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname,
+    });
+    setLoading(false);
+    if (err) setError(err.message);
+    else setResetSent(true);
+  };
+
+  if (resetSent) return (
+    <Centered>
+      <Brand />
+      <div style={{ textAlign: "center", padding: "20px 0" }}>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>📧</div>
+        <div style={{ fontWeight: 600, marginBottom: 8 }}>Email enviado</div>
+        <p style={{ color: "#64748b", fontSize: 13 }}>Verifique sua caixa de entrada e clique no link para redefinir a senha.</p>
+      </div>
+      <button onClick={() => { setForgotMode(false); setResetSent(false); }}
+        style={{ width: "100%", marginTop: 16, padding: "10px 0", borderRadius: 8, border: "1px solid #334155", background: "transparent", color: "#94a3b8", cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
+        Voltar ao login
+      </button>
+      <Footer />
+    </Centered>
+  );
+
   return (
     <Centered>
       <Brand />
-      <p style={{ margin: "0 0 20px", color: "#64748b", fontSize: 13 }}>Entre com seu email e senha.</p>
-      <Field value={email} onChange={setEmail} placeholder="Email" type="email" />
-      <Field value={password} onChange={setPassword} placeholder="Senha" type="password" onEnter={handleLogin} style={{ marginTop: 8 }} />
+      <p style={{ margin: "0 0 20px", color: "#64748b", fontSize: 13 }}>
+        {forgotMode ? "Digite seu email para redefinir a senha." : "Entre com seu email e senha."}
+      </p>
+      <Field value={email} onChange={setEmail} placeholder="Email" type="email" onEnter={forgotMode ? handleForgot : handleLogin} />
+      {!forgotMode && <Field value={password} onChange={setPassword} placeholder="Senha" type="password" onEnter={handleLogin} style={{ marginTop: 8 }} />}
       {error && <Err>{error}</Err>}
-      <SubmitBtn onClick={handleLogin} loading={loading}>Entrar</SubmitBtn>
-      <button onClick={() => { localStorage.removeItem("lc_supa_url"); localStorage.removeItem("lc_supa_key"); window.location.reload(); }}
-        style={{ background: "none", border: "none", color: "#475569", fontSize: 11, cursor: "pointer", marginTop: 10, fontFamily: "inherit" }}>
-        Trocar projeto
-      </button>
+      <SubmitBtn onClick={forgotMode ? handleForgot : handleLogin} loading={loading}>
+        {forgotMode ? "Enviar link de redefinição" : "Entrar"}
+      </SubmitBtn>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+        <button onClick={() => { setForgotMode(!forgotMode); setError(null); }}
+          style={{ background: "none", border: "none", color: "#6366f1", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
+          {forgotMode ? "← Voltar ao login" : "Esqueci minha senha"}
+        </button>
+        <button onClick={() => { localStorage.removeItem("lc_supa_url"); localStorage.removeItem("lc_supa_key"); window.location.reload(); }}
+          style={{ background: "none", border: "none", color: "#475569", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
+          Trocar projeto
+        </button>
+      </div>
       <Footer />
     </Centered>
   );
@@ -102,17 +141,44 @@ export default function App() {
 }
 
 function AuthGate({ supa }) {
-  const { user, profile, isAdmin, authLoaded, signOut, canView, canEdit } = useAuth(supa);
+  const { user, profile, isAdmin, authLoaded, needsPasswordReset, updatePassword, signOut, canView, canEdit } = useAuth(supa);
 
   if (!authLoaded) return (
     <Centered><div style={{ color: "#64748b", fontSize: 13 }}>Carregando...</div></Centered>
   );
 
-  if (!user || !profile) return (
-    <LoginScreen supa={supa} onLogin={() => {}} />
-  );
+  if (needsPasswordReset) return <ResetPasswordScreen onSave={updatePassword} />;
+
+  if (!user || !profile) return <LoginScreen supa={supa} onLogin={() => {}} />;
 
   return <MainApp supa={supa} profile={profile} isAdmin={isAdmin} canView={canView} canEdit={canEdit} signOut={signOut} />;
+}
+
+function ResetPasswordScreen({ onSave }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSave = async () => {
+    if (!password || password.length < 6) { setError("Mínimo 6 caracteres."); return; }
+    if (password !== confirm) { setError("As senhas não coincidem."); return; }
+    setLoading(true); setError(null);
+    const { error: err } = await onSave(password);
+    if (err) { setError(err.message); setLoading(false); }
+  };
+
+  return (
+    <Centered>
+      <Brand />
+      <p style={{ margin: "0 0 20px", color: "#64748b", fontSize: 13 }}>Defina uma nova senha.</p>
+      <Field value={password} onChange={setPassword} placeholder="Nova senha" type="password" />
+      <Field value={confirm} onChange={setConfirm} placeholder="Confirmar senha" type="password" onEnter={handleSave} style={{ marginTop: 8 }} />
+      {error && <Err>{error}</Err>}
+      <SubmitBtn onClick={handleSave} loading={loading}>Salvar nova senha</SubmitBtn>
+      <Footer />
+    </Centered>
+  );
 }
 
 // ---- Main App ----
