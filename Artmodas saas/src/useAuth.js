@@ -54,7 +54,7 @@ export function useAuth(supa) {
     });
 
   const isAdmin    = profile?.role === "admin";
-  const isApproved = profile?.approved !== false; // undefined = not yet migrated = allow through
+  const isApproved = profile?.approved === true;
   const permissions = isAdmin ? ALL_PERMS : (profile?.permissions || {});
   const canView = (tab) => isAdmin || permissions[tab]?.view === true;
   const canEdit = (tab) => isAdmin || permissions[tab]?.edit === true;
