@@ -163,7 +163,7 @@ export default function App() {
 }
 
 function AuthGate({ supa }) {
-  const { user, profile, isAdmin, authLoaded, needsPasswordReset, updatePassword, signOut, canView, canEdit } = useAuth(supa);
+  const { user, profile, isAdmin, isApproved, authLoaded, needsPasswordReset, updatePassword, signOut, canView, canEdit } = useAuth(supa);
 
   if (!authLoaded) return (
     <Centered><div style={{ color: "#64748b", fontSize: 13 }}>Carregando...</div></Centered>
@@ -172,6 +172,22 @@ function AuthGate({ supa }) {
   if (needsPasswordReset) return <ResetPasswordScreen onSave={updatePassword} />;
 
   if (!user || !profile) return <LoginScreen supa={supa} onLogin={() => {}} />;
+
+  if (!isApproved) return (
+    <Centered>
+      <Brand />
+      <div style={{ textAlign: "center", padding: "20px 0" }}>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+        <div style={{ fontWeight: 600, marginBottom: 8 }}>Aguardando aprovação</div>
+        <p style={{ color: "#64748b", fontSize: 13 }}>Sua conta foi criada mas ainda não foi aprovada pelo administrador.</p>
+      </div>
+      <button onClick={async () => { await signOut(); window.location.reload(); }}
+        style={{ width: "100%", marginTop: 16, padding: "10px 0", borderRadius: 8, border: "1px solid #334155", background: "transparent", color: "#94a3b8", cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
+        Sair
+      </button>
+      <Footer />
+    </Centered>
+  );
 
   return <MainApp supa={supa} profile={profile} isAdmin={isAdmin} canView={canView} canEdit={canEdit} signOut={signOut} />;
 }

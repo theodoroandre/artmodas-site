@@ -38,6 +38,11 @@ export default function AdminPanel({ supa, currentUserId }) {
     load();
   };
 
+  const approve = async (uid) => {
+    await supa.from("user_profiles").update({ approved: true }).eq("id", uid);
+    setUsers((u) => u.map((x) => x.id === uid ? { ...x, approved: true } : x));
+  };
+
   const setRole = async (uid, role) => {
     await supa.from("user_profiles").update({ role }).eq("id", uid);
     setUsers((u) => u.map((x) => x.id === uid ? { ...x, role } : x));
@@ -87,21 +92,31 @@ export default function AdminPanel({ supa, currentUserId }) {
               <div style={{ fontWeight: 600 }}>{u.name || u.email}</div>
               {u.name && <div style={{ color: "#64748b", fontSize: 12 }}>{u.email}</div>}
             </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              {!u.approved && (
+                <span className="badge" style={{ background: "#78350f22", color: "#fbbf24" }}>Pendente</span>
+              )}
               <span className="badge" style={{ background: u.role === "admin" ? "#6366f122" : "#1e2230", color: u.role === "admin" ? "#818cf8" : "#94a3b8" }}>
                 {u.role}
               </span>
-              {u.id !== currentUserId && (
+              {!u.approved && u.id !== currentUserId && (
+                <button className="btn prim" style={{ fontSize: 11, padding: "4px 12px" }} onClick={() => approve(u.id)}>
+                  Aprovar
+                </button>
+              )}
+              {u.approved && u.id !== currentUserId && (
                 <>
                   <button className="btn ghost" style={{ fontSize: 11, padding: "4px 10px" }}
                     onClick={() => setRole(u.id, u.role === "admin" ? "user" : "admin")}>
                     {u.role === "admin" ? "→ user" : "→ admin"}
                   </button>
-                  <button className="btn ghost" style={{ fontSize: 11, padding: "4px 10px", color: "#ef4444", borderColor: "#ef444444" }}
-                    onClick={() => deleteUser(u.id)}>
-                    Remover
-                  </button>
                 </>
+              )}
+              {u.id !== currentUserId && (
+                <button className="btn ghost" style={{ fontSize: 11, padding: "4px 10px", color: "#ef4444", borderColor: "#ef444444" }}
+                  onClick={() => deleteUser(u.id)}>
+                  Remover
+                </button>
               )}
             </div>
           </div>

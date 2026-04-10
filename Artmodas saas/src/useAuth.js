@@ -53,10 +53,11 @@ export function useAuth(supa) {
       return { error };
     });
 
-  const isAdmin = profile?.role === "admin";
+  const isAdmin    = profile?.role === "admin";
+  const isApproved = profile?.approved === true;
   const permissions = isAdmin ? ALL_PERMS : (profile?.permissions || {});
   const canView = (tab) => isAdmin || permissions[tab]?.view === true;
   const canEdit = (tab) => isAdmin || permissions[tab]?.edit === true;
 
-  return { user, profile, isAdmin, authLoaded, needsPasswordReset, signIn, signOut, sendPasswordReset, updatePassword, canView, canEdit };
+  return { user, profile, isAdmin, isApproved, authLoaded, needsPasswordReset, signIn, signOut, sendPasswordReset, updatePassword, canView, canEdit };
 }
