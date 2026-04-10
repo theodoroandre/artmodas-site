@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { uid, hoje, agora } from "./utils";
 import { mkPar } from "./seed";
@@ -60,19 +60,12 @@ function ConfigScreen({ onSave }) {
 
 // ---- Login Screen ----
 function LoginScreen({ supa, onLogin }) {
-  const [mode, setMode] = useState("login"); // "login" | "signup" | "forgot"
+  const [mode, setMode] = useState("login"); // "login" | "forgot"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [resetSent, setResetSent] = useState(false);
-  const [hasUsers, setHasUsers] = useState(true); // default true to avoid flash of button
-
-  useEffect(() => {
-    supa.from("user_profiles").select("id", { count: "exact", head: true })
-      .then(({ count }) => setHasUsers((count ?? 0) > 0));
-  }, [supa]);
 
   const switchMode = (m) => { setMode(m); setError(null); };
 
@@ -81,25 +74,6 @@ function LoginScreen({ supa, onLogin }) {
     setLoading(true); setError(null);
     const { error: err } = await supa.auth.signInWithPassword({ email, password });
     if (err) { setError(err.message === "Invalid login credentials" ? "Email ou senha incorretos." : err.message); setLoading(false); }
-  };
-
-  const handleSignup = async () => {
-    if (!email || !password) { setError("Preencha email e senha."); return; }
-    if (password.length < 6) { setError("Senha mínimo 6 caracteres."); return; }
-    setLoading(true); setError(null);
-    const { data, error: err } = await supa.auth.signUp({ email, password });
-    if (err) { setError(err.message); setLoading(false); return; }
-    if (data.user && name) {
-      await supa.from("user_profiles").update({ name }).eq("id", data.user.id);
-    }
-    // If email confirmation is disabled, user is logged in automatically.
-    // If enabled, show message.
-    if (data.session === null) {
-      setError(null);
-      setLoading(false);
-      switchMode("login");
-      alert("Conta criada! Verifique seu email para confirmar antes de entrar.");
-    }
   };
 
   const handleForgot = async () => {
@@ -129,24 +103,22 @@ function LoginScreen({ supa, onLogin }) {
     </Centered>
   );
 
-  const titles = { login: "Entre com sua conta.", signup: "Crie sua conta.", forgot: "Recuperar senha." };
-  const actions = { login: handleLogin, signup: handleSignup, forgot: handleForgot };
-  const btnLabels = { login: "Entrar", signup: "Criar conta", forgot: "Enviar link" };
+  const titles = { login: "Entre com sua conta.", forgot: "Recuperar senha." };
+  const actions = { login: handleLogin, forgot: handleForgot };
+  const btnLabels = { login: "Entrar", forgot: "Enviar link" };
 
   return (
     <Centered>
       <Brand />
       <p style={{ margin: "0 0 20px", color: "#64748b", fontSize: 13 }}>{titles[mode]}</p>
-      {mode === "signup" && <Field value={name} onChange={setName} placeholder="Nome (opcional)" style={{ marginBottom: 8 }} />}
       <Field value={email} onChange={setEmail} placeholder="Email" type="email" onEnter={actions[mode]} />
       {mode !== "forgot" && <Field value={password} onChange={setPassword} placeholder="Senha" type="password" onEnter={actions[mode]} style={{ marginTop: 8 }} />}
       {error && <Err>{error}</Err>}
       <SubmitBtn onClick={actions[mode]} loading={loading}>{btnLabels[mode]}</SubmitBtn>
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, flexWrap: "wrap", gap: 6 }}>
         <div style={{ display: "flex", gap: 12 }}>
-          {mode !== "login"   && <LinkBtn onClick={() => switchMode("login")}>← Entrar</LinkBtn>}
-          {mode === "login" && !hasUsers && <LinkBtn onClick={() => switchMode("signup")}>Criar conta</LinkBtn>}
-          {mode === "login"   && <LinkBtn onClick={() => switchMode("forgot")}>Esqueci a senha</LinkBtn>}
+          {mode !== "login"  && <LinkBtn onClick={() => switchMode("login")}>← Entrar</LinkBtn>}
+          {mode === "login"  && <LinkBtn onClick={() => switchMode("forgot")}>Esqueci a senha</LinkBtn>}
         </div>
         <LinkBtn onClick={() => { localStorage.removeItem("lc_supa_url"); localStorage.removeItem("lc_supa_key"); window.location.reload(); }} style={{ color: "#475569" }}>
           Trocar projeto
