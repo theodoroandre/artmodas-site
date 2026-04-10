@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 import { uid, hoje, agora } from "./utils";
-import { mkPar, PROD0, CLI0, VENDAS0, PAR0, MOV0, LOG0 } from "./seed";
-import { useGoogleSheet, useSheetLoader } from "./useGoogleSheets";
+import { mkPar } from "./seed";
+import { useSupabaseData } from "./useSupabase";
 import "./index.css";
 
 import Painel from "./components/Painel";
@@ -27,33 +28,33 @@ const TABS = [
 ];
 
 function LoginScreen() {
-  const [url, setUrl] = useState(localStorage.getItem("lc_script_url") || "");
-  const [pwd, setPwd] = useState("");
+  const [url, setUrl] = useState(localStorage.getItem("lc_supa_url") || "");
+  const [key, setKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const trimUrl = url.trim();
-    const trimPwd = pwd.trim();
-    if (!trimUrl || !trimPwd) { setError("Preencha todos os campos."); return; }
+    const trimKey = key.trim();
+    if (!trimUrl || !trimKey) { setError("Preencha todos os campos."); return; }
     setLoading(true);
     setError(null);
-    fetch(trimUrl + "?action=readAll&pwd=" + encodeURIComponent(trimPwd))
-      .then((r) => r.json())
-      .then((r) => {
-        if (!r.ok) {
-          setError(r.error === "auth" ? "Senha incorreta." : r.error);
-          setLoading(false);
-          return;
-        }
-        localStorage.setItem("lc_script_url", trimUrl);
-        localStorage.setItem("lc_script_pwd", trimPwd);
-        window.location.reload();
-      })
-      .catch(() => {
-        setError("Não foi possível conectar. Verifique a URL.");
+    try {
+      const supa = createClient(trimUrl, trimKey);
+      const { error: err } = await supa.from("clientes").select("id").limit(1);
+      if (err) {
+        if (err.code === "42P01") setError("Tabelas não encontradas. Execute o SQL de setup no Supabase primeiro.");
+        else setError("Conexão falhou: " + err.message);
         setLoading(false);
-      });
+        return;
+      }
+      localStorage.setItem("lc_supa_url", trimUrl);
+      localStorage.setItem("lc_supa_key", trimKey);
+      window.location.reload();
+    } catch {
+      setError("Não foi possível conectar. Verifique a URL.");
+      setLoading(false);
+    }
   };
 
   return (
@@ -62,17 +63,15 @@ function LoginScreen() {
         <div style={{ fontWeight: 800, fontSize: 22, color: "#6366f1", marginBottom: 4, letterSpacing: "-.02em" }}>
           LOJA<span style={{ color: "#e2e8f0" }}>CTRL</span>
         </div>
-        <p style={{ margin: "0 0 20px", color: "#64748b", fontSize: 13 }}>
-          Entre com suas credenciais para acessar o sistema.
-        </p>
+        <p style={{ margin: "0 0 20px", color: "#64748b", fontSize: 13 }}>Entre com suas credenciais Supabase.</p>
         <input
           value={url} onChange={(e) => setUrl(e.target.value)}
-          placeholder="URL do Google Apps Script"
+          placeholder="URL do projeto (https://xxx.supabase.co)"
           style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0d0f14", color: "#e2e8f0", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
         />
         <input
-          type="password" value={pwd} onChange={(e) => setPwd(e.target.value)}
-          placeholder="Senha"
+          type="password" value={key} onChange={(e) => setKey(e.target.value)}
+          placeholder="Anon Key"
           onKeyDown={(e) => e.key === "Enter" && handleLogin()}
           style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0d0f14", color: "#e2e8f0", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box", marginTop: 8 }}
         />
@@ -90,39 +89,22 @@ function LoginScreen() {
 }
 
 export default function App() {
-  const scriptUrl = localStorage.getItem("lc_script_url") || "";
-  const scriptPwd = localStorage.getItem("lc_script_pwd") || "";
-
-  // Must be authenticated to use the app
-  if (!scriptUrl || !scriptPwd) return <LoginScreen />;
-
-  return <MainApp scriptUrl={scriptUrl} />;
+  const supaUrl = localStorage.getItem("lc_supa_url") || "";
+  const supaKey = localStorage.getItem("lc_supa_key") || "";
+  if (!supaUrl || !supaKey) return <LoginScreen />;
+  return <MainApp supaUrl={supaUrl} supaKey={supaKey} />;
 }
 
-function MainApp({ scriptUrl }) {
-  const [tab, setTab]       = useState("painel");
+function MainApp({ supaUrl, supaKey }) {
+  const [tab, setTab]     = useState("painel");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [prods, setProds, savingProds]   = useGoogleSheet("lc_prods", PROD0, scriptUrl);
-  const [clis, setClis, savingClis]      = useGoogleSheet("lc_clis", CLI0, scriptUrl);
-  const [vendas, setVendas, savingVendas]= useGoogleSheet("lc_vendas", VENDAS0, scriptUrl);
-  const [pars, setPars, savingPars]      = useGoogleSheet("lc_pars", PAR0, scriptUrl);
-  const [movs, setMovs, savingMovs]     = useGoogleSheet("lc_movs", MOV0, scriptUrl);
-  const [logs, setLogs, savingLogs]    = useGoogleSheet("lc_logs", LOG0, scriptUrl);
-  const [modal, setModal]   = useState(null);
+  const [modal, setModal] = useState(null);
   const close = () => setModal(null);
 
-  const isSaving = savingProds || savingClis || savingVendas || savingPars || savingMovs || savingLogs;
-
-  const log = (cat, acao, desc) => setLogs((x) => [...x, { id: uid(), ts: agora(), cat, acao, desc }]);
-
-  const setters = useMemo(() => ({ setProds, setClis, setVendas, setPars, setMovs, setLogs }), []);
-  const { loaded, error } = useSheetLoader(scriptUrl, setters);
+  const { prods, clis, vendas, pars, movs, logs, set, insert, upsert, remove, loaded, saving: isSaving } = useSupabaseData(supaUrl, supaKey);
 
   const logout = () => {
-    localStorage.removeItem("lc_script_url");
-    localStorage.removeItem("lc_script_pwd");
-    // Clear cached data
-    ["lc_prods", "lc_clis", "lc_vendas", "lc_pars", "lc_movs", "lc_logs"].forEach((k) => localStorage.removeItem(k));
+    ["lc_supa_url", "lc_supa_key"].forEach((k) => localStorage.removeItem(k));
     window.location.reload();
   };
 
@@ -130,31 +112,73 @@ function MainApp({ scriptUrl }) {
   const cmap = Object.fromEntries(clis.map((c) => [c.id, c]));
   const vmap = Object.fromEntries(vendas.map((v) => [v.id, v]));
 
+  const log = (cat, acao, desc) => {
+    const entry = { id: uid(), ts: agora(), cat, acao, desc };
+    set("logs", (x) => [...x, entry]);
+    insert("logs", entry);
+  };
+
   const diff = (old, novo, campos) => campos.map((k) => {
     const a = old[k] ?? "", b = novo[k] ?? "";
     return String(a) !== String(b) ? `${k}: "${a}" → "${b}"` : null;
   }).filter(Boolean).join(", ");
 
-  const addProd  = (p) => { setProds((x) => [...x, { ...p, id: uid() }]); log("Produto", "Cadastro", `Produto "${p.nome}" cadastrado`); };
-  const editProd = (p) => { const old = pmap[p.id]; setProds((x) => x.map((q) => q.id === p.id ? p : q)); log("Produto", "Edicao", `Produto "${old?.nome || p.nome}": ${diff(old || {}, p, ["cod","nome","preco","estoque"]) || "sem alteracoes"}`); };
-  const editCli  = (c) => { const old = cmap[c.id]; setClis((x) => x.map((q) => q.id === c.id ? c : q)); log("Cliente", "Edicao", `Cliente "${old?.nome || c.nome}": ${diff(old || {}, c, ["nome","tel","cpf","email","end"]) || "sem alteracoes"}`); };
+  const addProd = (p) => {
+    const np = { ...p, id: uid() };
+    set("produtos", (x) => [...x, np]);
+    insert("produtos", np);
+    log("Produto", "Cadastro", `Produto "${np.nome}" cadastrado`);
+  };
+
+  const editProd = (p) => {
+    const old = pmap[p.id];
+    set("produtos", (x) => x.map((q) => q.id === p.id ? p : q));
+    upsert("produtos", p);
+    log("Produto", "Edicao", `Produto "${old?.nome || p.nome}": ${diff(old || {}, p, ["cod", "nome", "preco", "estoque"]) || "sem alteracoes"}`);
+  };
+
+  const editCli = (c) => {
+    const old = cmap[c.id];
+    set("clientes", (x) => x.map((q) => q.id === c.id ? c : q));
+    upsert("clientes", c);
+    log("Cliente", "Edicao", `Cliente "${old?.nome || c.nome}": ${diff(old || {}, c, ["nome", "tel", "cpf", "email", "end"]) || "sem alteracoes"}`);
+  };
 
   const entrada = ({ pid, qty, data, obs }) => {
-    const nome = pmap[pid]?.nome || pid;
-    setProds((x) => x.map((p) => p.id === pid ? { ...p, estoque: p.estoque + qty } : p));
-    setMovs((x) => [...x, { id: uid(), pid, tipo: "entrada", qty, data, motivo: obs || "Entrada de estoque" }]);
+    const prod = pmap[pid];
+    const nome = prod?.nome || pid;
+    if (prod) {
+      const np = { ...prod, estoque: prod.estoque + qty };
+      set("produtos", (x) => x.map((p) => p.id === pid ? np : p));
+      upsert("produtos", np);
+    }
+    const mov = { id: uid(), pid, tipo: "entrada", qty, data, motivo: obs || "Entrada de estoque" };
+    set("movimentacoes", (x) => [...x, mov]);
+    insert("movimentacoes", mov);
     log("Estoque", "Entrada", `+${qty} un. de "${nome}"${obs ? ` — ${obs}` : ""}`);
   };
 
   const addVenda = (v) => {
     const nv = { ...v, id: uid() };
     const cli = cmap[nv.cliId];
-    setVendas((x) => [...x, nv]);
+    set("vendas", (x) => [...x, nv]);
+    insert("vendas", nv);
     nv.itens.forEach((it) => {
-      setProds((x) => x.map((p) => p.id === it.pid ? { ...p, estoque: Math.max(0, p.estoque - it.qty) } : p));
-      setMovs((x) => [...x, { id: uid(), pid: it.pid, tipo: "saida", qty: it.qty, data: nv.data, motivo: "Venda", vendaId: nv.id }]);
+      const prod = pmap[it.pid];
+      if (prod) {
+        const np = { ...prod, estoque: Math.max(0, prod.estoque - it.qty) };
+        set("produtos", (x) => x.map((p) => p.id === it.pid ? np : p));
+        upsert("produtos", np);
+      }
+      const mov = { id: uid(), pid: it.pid, tipo: "saida", qty: it.qty, data: nv.data, motivo: "Venda", vendaId: nv.id };
+      set("movimentacoes", (x) => [...x, mov]);
+      insert("movimentacoes", mov);
     });
-    if (nv.pg === "credito_loja") setPars((x) => [...x, ...mkPar(nv)]);
+    if (nv.pg === "credito_loja") {
+      const newPars = mkPar(nv);
+      set("parcelamentos", (x) => [...x, ...newPars]);
+      newPars.forEach((p) => insert("parcelamentos", p));
+    }
     log("Venda", "Nova venda", `Venda para "${cli?.nome || "?"}" — ${nv.itens.length} item(ns), ${nv.pg}`);
   };
 
@@ -162,11 +186,21 @@ function MainApp({ scriptUrl }) {
     const v = vmap[vid];
     if (!v) return;
     const cli = cmap[v.cliId];
-    setVendas((x) => x.filter((vn) => vn.id !== vid));
-    setPars((x) => x.filter((p) => p.vendaId !== vid));
+    set("vendas", (x) => x.filter((vn) => vn.id !== vid));
+    remove("vendas", vid);
+    const relPars = pars.filter((p) => p.vendaId === vid);
+    set("parcelamentos", (x) => x.filter((p) => p.vendaId !== vid));
+    relPars.forEach((p) => remove("parcelamentos", p.id));
     v.itens.forEach((it) => {
-      setProds((x) => x.map((p) => p.id === it.pid ? { ...p, estoque: p.estoque + it.qty } : p));
-      setMovs((x) => [...x, { id: uid(), pid: it.pid, tipo: "entrada", qty: it.qty, data: hoje(), motivo: "Estorno venda", vendaId: vid }]);
+      const prod = pmap[it.pid];
+      if (prod) {
+        const np = { ...prod, estoque: prod.estoque + it.qty };
+        set("produtos", (x) => x.map((p) => p.id === it.pid ? np : p));
+        upsert("produtos", np);
+      }
+      const mov = { id: uid(), pid: it.pid, tipo: "entrada", qty: it.qty, data: hoje(), motivo: "Estorno venda", vendaId: vid };
+      set("movimentacoes", (x) => [...x, mov]);
+      insert("movimentacoes", mov);
     });
     log("Venda", "Exclusao", `Venda para "${cli?.nome || "?"}" excluida com estorno`);
   };
@@ -175,19 +209,16 @@ function MainApp({ scriptUrl }) {
     const par = pars.find((p) => p.id === id);
     const v = par ? vmap[par.vendaId] : null;
     const cli = v ? cmap[v.cliId] : null;
-    setPars((x) => x.map((p) => {
+    let updated;
+    set("parcelamentos", (x) => x.map((p) => {
       if (p.id !== id) return p;
       const np = Math.min(p.valor, +(p.pago + val).toFixed(2));
-      return { ...p, pago: np, pagamentos: [...p.pagamentos, { id: uid(), val, data, obs }] };
+      updated = { ...p, pago: np, pagamentos: [...p.pagamentos, { id: uid(), val, data, obs }] };
+      return updated;
     }));
+    if (updated) upsert("parcelamentos", updated);
     log("Pagamento", "Recebimento", `R$ ${val.toFixed(2)} recebido de "${cli?.nome || "?"}" — parcela ${par?.num || "?"}`);
   };
-
-  // Auth error — kick back to login
-  if (loaded && error === "Senha incorreta") {
-    logout();
-    return null;
-  }
 
   return (
     <div style={{ fontFamily: "'DM Mono','Courier New',monospace", background: "#0d0f14", minHeight: "100vh", color: "#e2e8f0" }}>
@@ -251,7 +282,17 @@ function MainApp({ scriptUrl }) {
       {/* Modals */}
       {modal?.type === "prod"    && <ProdModal    prod={modal.prod} onClose={close} onSave={(p) => { modal.prod ? editProd(p) : addProd(p); close(); }} />}
       {modal?.type === "entrada" && <EntradaModal prods={prods} onClose={close} onSave={(e) => { entrada(e); close(); }} />}
-      {modal?.type === "cli"     && <CliModal     cli={modal.cli} onClose={close} onSave={(c) => { if (modal.cli) { editCli(c); } else { setClis((x) => [...x, { ...c, id: uid(), cad: hoje() }]); log("Cliente", "Cadastro", `Cliente "${c.nome}" cadastrado`); } close(); }} />}
+      {modal?.type === "cli"     && <CliModal     cli={modal.cli} onClose={close} onSave={(c) => {
+        if (modal.cli) {
+          editCli(c);
+        } else {
+          const nc = { ...c, id: uid(), cad: hoje() };
+          set("clientes", (x) => [...x, nc]);
+          insert("clientes", nc);
+          log("Cliente", "Cadastro", `Cliente "${c.nome}" cadastrado`);
+        }
+        close();
+      }} />}
       {modal?.type === "venda"   && <VendaModal   prods={prods} clis={clis} onClose={close} onSave={(v) => { addVenda(v); close(); }} />}
       {modal?.type === "detCli"  && <DetCliModal  cli={modal.cli} vendas={vendas.filter((v) => v.cliId === modal.cli.id)} pars={pars} pmap={pmap} onClose={close} onPagar={(vid) => { close(); setModal({ type: "pagar", vid }); }} />}
       {modal?.type === "pagar"   && <PagarModal   venda={vmap[modal.vid]} pars={pars.filter((p) => p.vendaId === modal.vid)} onClose={close} onPay={pagarPar} />}
@@ -261,7 +302,7 @@ function MainApp({ scriptUrl }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(13,15,20,.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
           <div style={{ textAlign: "center", color: "#e2e8f0" }}>
             <div style={{ fontSize: 18, marginBottom: 8 }}>Carregando dados...</div>
-            <div style={{ fontSize: 12, color: "#64748b" }}>Conectando ao Google Sheets</div>
+            <div style={{ fontSize: 12, color: "#64748b" }}>Conectando ao Supabase</div>
           </div>
         </div>
       )}
