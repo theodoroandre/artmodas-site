@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { uid, hoje, agora } from "./utils";
 import { mkPar } from "./seed";
@@ -67,6 +67,12 @@ function LoginScreen({ supa, onLogin }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [resetSent, setResetSent] = useState(false);
+  const [hasUsers, setHasUsers] = useState(true); // default true to avoid flash of button
+
+  useEffect(() => {
+    supa.from("user_profiles").select("id", { count: "exact", head: true })
+      .then(({ count }) => setHasUsers((count ?? 0) > 0));
+  }, [supa]);
 
   const switchMode = (m) => { setMode(m); setError(null); };
 
@@ -139,7 +145,7 @@ function LoginScreen({ supa, onLogin }) {
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, flexWrap: "wrap", gap: 6 }}>
         <div style={{ display: "flex", gap: 12 }}>
           {mode !== "login"   && <LinkBtn onClick={() => switchMode("login")}>← Entrar</LinkBtn>}
-          {mode === "login"   && <LinkBtn onClick={() => switchMode("signup")}>Criar conta</LinkBtn>}
+          {mode === "login" && !hasUsers && <LinkBtn onClick={() => switchMode("signup")}>Criar conta</LinkBtn>}
           {mode === "login"   && <LinkBtn onClick={() => switchMode("forgot")}>Esqueci a senha</LinkBtn>}
         </div>
         <LinkBtn onClick={() => { localStorage.removeItem("lc_supa_url"); localStorage.removeItem("lc_supa_key"); window.location.reload(); }} style={{ color: "#475569" }}>
