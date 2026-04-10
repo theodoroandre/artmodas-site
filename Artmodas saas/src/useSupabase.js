@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
 
 const TABLES = ["produtos", "clientes", "vendas", "parcelamentos", "movimentacoes", "logs"];
 
-export function useSupabaseData(url, key) {
-  const [supa] = useState(() => url && key ? createClient(url, key) : null);
+export function useSupabaseData(supa) {
   const [state, setState] = useState({
     produtos: [], clientes: [], vendas: [], parcelamentos: [], movimentacoes: [], logs: [],
   });

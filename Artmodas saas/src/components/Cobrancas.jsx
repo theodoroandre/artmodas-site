@@ -2,7 +2,7 @@ import { useState } from "react";
 import { R$, dtBR } from "../utils";
 import { stPar, COR, LBL } from "../constants";
 
-export default function Cobrancas({ pars, vendas, cmap, onPagar }) {
+export default function Cobrancas({ pars, vendas, cmap, canEdit, onPagar }) {
   const [filtro, setFiltro] = useState("todos");
   const vmap = Object.fromEntries(vendas.map((v) => [v.id, v]));
 
@@ -43,7 +43,7 @@ export default function Cobrancas({ pars, vendas, cmap, onPagar }) {
                   <td style={{ color: "#22c55e" }}>{R$(p.pago)}</td>
                   <td style={{ color: sl > 0 ? "#f59e0b" : "#22c55e", fontWeight: 500 }}>{R$(sl)}</td>
                   <td><span className="badge" style={{ background: COR[st] + "22", color: COR[st] }}>{LBL[st]}</span></td>
-                  <td>{st !== "pago" && <button className="btn ghost" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => onPagar(p.vendaId)}>Pagar</button>}</td>
+                  <td>{canEdit && st !== "pago" && <button className="btn ghost" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => onPagar(p.vendaId)}>Pagar</button>}</td>
                 </tr>
               );
             })}

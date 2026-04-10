@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { R$, dtBR } from "../utils";
 
-export default function Estoque({ prods, movs, pmap, cmap, vmap, onNovoProd, onEntrada, onEdit }) {
+export default function Estoque({ prods, movs, pmap, cmap, vmap, canEdit, onNovoProd, onEntrada, onEdit }) {
   const [busca, setBusca] = useState("");
   const [cat, setCat] = useState("todas");
   const [showMovs, setShowMovs] = useState(false);
@@ -18,10 +18,12 @@ export default function Estoque({ prods, movs, pmap, cmap, vmap, onNovoProd, onE
           <h1 className="sy" style={{ fontSize: 22, fontWeight: 700 }}>Estoque</h1>
           <p style={{ color: "#64748b", fontSize: 13, marginTop: 2 }}>{prods.length} produto(s)</p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button className="btn ghost" onClick={onEntrada}>↑ Entrada</button>
-          <button className="btn prim" onClick={onNovoProd}>+ Novo Produto</button>
-        </div>
+        {canEdit && (
+          <div style={{ display: "flex", gap: 10 }}>
+            <button className="btn ghost" onClick={onEntrada}>↑ Entrada</button>
+            <button className="btn prim" onClick={onNovoProd}>+ Novo Produto</button>
+          </div>
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -56,7 +58,7 @@ export default function Estoque({ prods, movs, pmap, cmap, vmap, onNovoProd, onE
                     : crit ? <span className="badge" style={{ background: "#78350f22", color: "#fbbf24" }}>Crítico</span>
                     :        <span className="badge" style={{ background: "#14532d22", color: "#4ade80" }}>OK</span>}
                   </td>
-                  <td><button className="btn ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => onEdit(p)}>Editar</button></td>
+                  <td>{canEdit && <button className="btn ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => onEdit(p)}>Editar</button>}</td>
                 </tr>
               );
             })}

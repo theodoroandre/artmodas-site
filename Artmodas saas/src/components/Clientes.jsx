@@ -2,7 +2,7 @@ import { useState } from "react";
 import { R$ } from "../utils";
 import { stPar } from "../constants";
 
-export default function Clientes({ clis, vendas, pars, pmap, onNovo, onEdit, onDetalhe, onPagar }) {
+export default function Clientes({ clis, vendas, pars, pmap, canEdit, onNovo, onEdit, onDetalhe, onPagar }) {
   const [busca, setBusca] = useState("");
   const filtrados = clis.filter(
     (c) => c.nome.toLowerCase().includes(busca.toLowerCase()) || c.tel.includes(busca)
@@ -15,7 +15,7 @@ export default function Clientes({ clis, vendas, pars, pmap, onNovo, onEdit, onD
           <h1 className="sy" style={{ fontSize: 22, fontWeight: 700 }}>Clientes</h1>
           <p style={{ color: "#64748b", fontSize: 13, marginTop: 2 }}>{clis.length} cadastrado(s)</p>
         </div>
-        <button className="btn prim" onClick={onNovo}>+ Novo Cliente</button>
+        {canEdit && <button className="btn prim" onClick={onNovo}>+ Novo Cliente</button>}
       </div>
       <input className="inp" placeholder="Buscar por nome ou telefone..." value={busca} onChange={(e) => setBusca(e.target.value)} style={{ maxWidth: 340 }} />
       <div className="card">
@@ -41,7 +41,7 @@ export default function Clientes({ clis, vendas, pars, pmap, onNovo, onEdit, onD
                         : <span className="badge" style={{ background: "#14532d22", color: "#4ade80" }}>OK</span>}
                   </td>
                   <td style={{ display: "flex", gap: 4 }}>
-                    <button className="btn ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => onEdit(c)}>Editar</button>
+                    {canEdit && <button className="btn ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => onEdit(c)}>Editar</button>}
                     <button className="btn ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => onDetalhe(c)}>Detalhes</button>
                   </td>
                 </tr>

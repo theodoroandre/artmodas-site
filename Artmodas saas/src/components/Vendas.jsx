@@ -2,7 +2,7 @@ import { useState } from "react";
 import { R$, dtBR } from "../utils";
 import { PG, stPar, COR, LBL } from "../constants";
 
-export default function Vendas({ vendas, cmap, pmap, pars, onNova, onPagar, onExcluir }) {
+export default function Vendas({ vendas, cmap, pmap, pars, canEdit, onNova, onPagar, onExcluir }) {
   const [busca, setBusca] = useState("");
   const filtradas = vendas.filter((v) => {
     const c = cmap[v.cliId];
@@ -17,7 +17,7 @@ export default function Vendas({ vendas, cmap, pmap, pars, onNova, onPagar, onEx
           <h1 className="sy" style={{ fontSize: 22, fontWeight: 700 }}>Vendas</h1>
           <p style={{ color: "#64748b", fontSize: 13, marginTop: 2 }}>{vendas.length} venda(s)</p>
         </div>
-        <button className="btn prim" onClick={onNova}>+ Nova Venda</button>
+        {canEdit && <button className="btn prim" onClick={onNova}>+ Nova Venda</button>}
       </div>
       <input className="inp" placeholder="Buscar por cliente ou produto..." value={busca} onChange={(e) => setBusca(e.target.value)} style={{ maxWidth: 340 }} />
 
@@ -71,13 +71,15 @@ export default function Vendas({ vendas, cmap, pmap, pars, onNova, onPagar, onEx
                 </div>
                 <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
                   <span className="sy" style={{ fontWeight: 700, fontSize: 20 }}>{R$(v.total)}</span>
-                  {v.pg === "credito_loja" && pct < 100 && (
+                  {canEdit && v.pg === "credito_loja" && pct < 100 && (
                     <button className="btn prim" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => onPagar(v.id)}>Registrar Pag.</button>
                   )}
-                  <button className="btn ghost" style={{ padding: "6px 12px", fontSize: 12, color: "#ef4444", borderColor: "#ef444444" }}
-                    onClick={() => { if (confirm("Excluir esta venda? O estoque será estornado.")) onExcluir(v.id); }}>
-                    Excluir
-                  </button>
+                  {canEdit && (
+                    <button className="btn ghost" style={{ padding: "6px 12px", fontSize: 12, color: "#ef4444", borderColor: "#ef444444" }}
+                      onClick={() => { if (confirm("Excluir esta venda? O estoque será estornado.")) onExcluir(v.id); }}>
+                      Excluir
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
