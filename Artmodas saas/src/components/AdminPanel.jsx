@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 const TABS = ["painel", "estoque", "vendas", "clientes", "cobrancas", "logs"];
 const DEFAULT_PERMS = Object.fromEntries(TABS.map((t) => [t, { view: false, edit: false }]));
@@ -25,7 +26,10 @@ export default function AdminPanel({ supa, currentUserId }) {
   const createUser = async () => {
     if (!form.email || !form.password) { setError("Email e senha obrigatórios."); return; }
     setCreating(true); setError(null); setSuccess(null);
-    const { data, error: err } = await supa.auth.signUp({ email: form.email, password: form.password });
+    // Use a separate client so the admin's session is not replaced
+    const { data: { supaUrl, supaKey } } = { data: { supaUrl: localStorage.getItem("lc_supa_url"), supaKey: localStorage.getItem("lc_supa_key") } };
+    const tmpSupa = createClient(supaUrl, supaKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error: err } = await tmpSupa.auth.signUp({ email: form.email, password: form.password });
     if (err) { setError(err.message); setCreating(false); return; }
     if (data.user) {
       await supa.from("user_profiles").upsert({
