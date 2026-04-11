@@ -120,23 +120,20 @@ function LoginScreen({ supa, onLogin }) {
           {mode !== "login"  && <LinkBtn onClick={() => switchMode("login")}>← Entrar</LinkBtn>}
           {mode === "login"  && <LinkBtn onClick={() => switchMode("forgot")}>Esqueci a senha</LinkBtn>}
         </div>
-        <LinkBtn onClick={() => { localStorage.removeItem("lc_supa_url"); localStorage.removeItem("lc_supa_key"); window.location.reload(); }} style={{ color: "#475569" }}>
-          Trocar projeto
-        </LinkBtn>
+
       </div>
       <Footer />
     </Centered>
   );
 }
 
+// ---- Project credentials ----
+const SUPA_URL = "https://wyxexheuhhzfxhqmjasc.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5eGV4aGV1aGh6ZnhocW1qYXNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4Mjk4OTAsImV4cCI6MjA5MTQwNTg5MH0._Fji_AZaYlWEYiHc3TXSSavBHTDczQTchGbEdreagYE";
+
 // ---- Root ----
 export default function App() {
-  const [supaUrl, setSupaUrl] = useState(localStorage.getItem("lc_supa_url") || "");
-  const [supaKey, setSupaKey] = useState(localStorage.getItem("lc_supa_key") || "");
-
-  const supa = useMemo(() => supaUrl && supaKey ? createClient(supaUrl, supaKey) : null, [supaUrl, supaKey]);
-
-  if (!supa) return <ConfigScreen onSave={(u, k) => { setSupaUrl(u); setSupaKey(k); }} />;
+  const supa = useMemo(() => createClient(SUPA_URL, SUPA_KEY), []);
   return <AuthGate supa={supa} />;
 }
 

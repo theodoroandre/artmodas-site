@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
+const SUPA_URL = "https://wyxexheuhhzfxhqmjasc.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5eGV4aGV1aGh6ZnhocW1qYXNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4Mjk4OTAsImV4cCI6MjA5MTQwNTg5MH0._Fji_AZaYlWEYiHc3TXSSavBHTDczQTchGbEdreagYE";
+
 const TABS = ["painel", "estoque", "vendas", "clientes", "cobrancas", "logs"];
 const DEFAULT_PERMS = Object.fromEntries(TABS.map((t) => [t, { view: false, edit: false }]));
 
@@ -29,8 +32,7 @@ export default function AdminPanel({ supa, currentUserId }) {
     if (form.password !== form.confirm) { setError("As senhas não coincidem."); return; }
     setCreating(true); setError(null); setSuccess(null);
     // Use a separate client so the admin's session is not replaced
-    const { data: { supaUrl, supaKey } } = { data: { supaUrl: localStorage.getItem("lc_supa_url"), supaKey: localStorage.getItem("lc_supa_key") } };
-    const tmpSupa = createClient(supaUrl, supaKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const tmpSupa = createClient(SUPA_URL, SUPA_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
     let userId = null;
     const { data, error: signUpErr } = await tmpSupa.auth.signUp({ email: form.email, password: form.password });
     if (signUpErr) {
