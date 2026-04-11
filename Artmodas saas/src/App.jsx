@@ -167,7 +167,7 @@ function AuthGate({ supa }) {
     </Centered>
   );
 
-  return <MainApp supa={supa} profile={profile} isAdmin={isAdmin} canView={canView} canEdit={canEdit} signOut={signOut} />;
+  return <MainApp supa={supa} profile={profile} isAdmin={isAdmin} canView={canView} canEdit={canEdit} signOut={signOut} updatePassword={updatePassword} />;
 }
 
 function ResetPasswordScreen({ onSave }) {
@@ -197,11 +197,60 @@ function ResetPasswordScreen({ onSave }) {
   );
 }
 
+// ---- Change Password Modal ----
+function ChangePasswordModal({ onSave, onClose }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm]   = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState(null);
+  const [done, setDone]         = useState(false);
+
+  const handleSave = async () => {
+    if (password.length < 6) { setError("Mínimo 6 caracteres."); return; }
+    if (password !== confirm) { setError("As senhas não coincidem."); return; }
+    setLoading(true); setError(null);
+    const { error: err } = await onSave(password);
+    if (err) { setError(err.message); setLoading(false); }
+    else setDone(true);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
+      <div style={{ background: "#1e2230", borderRadius: 12, padding: 28, width: 360, maxWidth: "90vw", fontFamily: "'DM Mono','Courier New',monospace" }}>
+        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>Alterar senha</div>
+        {done ? (
+          <>
+            <div style={{ color: "#22c55e", fontSize: 13, marginBottom: 16 }}>Senha alterada com sucesso.</div>
+            <button className="btn prim" onClick={onClose} style={{ width: "100%" }}>Fechar</button>
+          </>
+        ) : (
+          <>
+            <div style={{ background: "#78350f22", border: "1px solid #92400e44", borderRadius: 8, padding: "10px 14px", marginBottom: 14, color: "#fbbf24", fontSize: 12 }}>
+              Este sistema está na internet. Use uma senha segura: mínimo 8 caracteres, letras, números e símbolos.
+            </div>
+            <input className="inp" placeholder="Nova senha" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+              style={{ width: "100%", marginBottom: 8, boxSizing: "border-box" }} />
+            <input className="inp" placeholder="Confirmar nova senha" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSave()}
+              style={{ width: "100%", boxSizing: "border-box" }} />
+            {error && <div style={{ marginTop: 8, color: "#ef4444", fontSize: 12 }}>{error}</div>}
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button className="btn ghost" onClick={onClose} style={{ flex: 1 }}>Cancelar</button>
+              <button className="btn prim" onClick={handleSave} disabled={loading} style={{ flex: 1 }}>{loading ? "Salvando..." : "Salvar"}</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ---- Main App ----
-function MainApp({ supa, profile, isAdmin, canView, canEdit, signOut }) {
+function MainApp({ supa, profile, isAdmin, canView, canEdit, signOut, updatePassword }) {
   const [tab, setTab]     = useState("painel");
   const [menuOpen, setMenuOpen] = useState(false);
   const [modal, setModal] = useState(null);
+  const [showChangePwd, setShowChangePwd] = useState(false);
   const close = () => setModal(null);
 
   const { prods, clis, vendas, pars, movs, logs, set, insert, upsert, remove, loaded, saving: isSaving } = useSupabaseData(supa);
@@ -316,6 +365,7 @@ function MainApp({ supa, profile, isAdmin, canView, canEdit, signOut }) {
         </nav>
         <div className="nav-desktop" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ color: "#64748b", fontSize: 12 }}>{profile?.name || profile?.email}</span>
+          <button className="btn-sair-desktop" onClick={() => setShowChangePwd(true)} style={{ padding: "5px 12px", borderRadius: 7, fontSize: 12, background: "transparent", color: "#64748b", border: "1px solid #334155", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>Senha</button>
           <button className="btn-sair-desktop" onClick={logout} style={{ padding: "5px 12px", borderRadius: 7, fontSize: 12, background: "transparent", color: "#64748b", border: "1px solid #334155", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>Sair</button>
         </div>
       </div>
@@ -335,8 +385,10 @@ function MainApp({ supa, profile, isAdmin, canView, canEdit, signOut }) {
             </button>
           ))}
         </nav>
+        <button onClick={() => { setMenuOpen(false); setShowChangePwd(true); }}
+          style={{ marginTop: 8, padding: "10px 14px", borderRadius: 8, fontSize: 13, width: "100%", textAlign: "left", background: "transparent", color: "#94a3b8", border: "1px solid #334155", cursor: "pointer", fontFamily: "inherit" }}>Alterar senha</button>
         <button onClick={() => { setMenuOpen(false); logout(); }}
-          style={{ marginTop: 24, padding: "10px 14px", borderRadius: 8, fontSize: 13, width: "100%", textAlign: "left", background: "transparent", color: "#ef4444", border: "1px solid #7f1d1d44", cursor: "pointer", fontFamily: "inherit" }}>Sair</button>
+          style={{ marginTop: 8, padding: "10px 14px", borderRadius: 8, fontSize: 13, width: "100%", textAlign: "left", background: "transparent", color: "#ef4444", border: "1px solid #7f1d1d44", cursor: "pointer", fontFamily: "inherit" }}>Sair</button>
       </div>
 
       <div style={{ padding: "24px 20px", maxWidth: 1100, margin: "0 auto" }}>
@@ -362,6 +414,8 @@ function MainApp({ supa, profile, isAdmin, canView, canEdit, signOut }) {
       {modal?.type === "venda"   && <VendaModal   prods={prods} clis={clis} onClose={close} onSave={(v) => { addVenda(v); close(); }} />}
       {modal?.type === "detCli"  && <DetCliModal  cli={modal.cli} vendas={vendas.filter((v) => v.cliId === modal.cli.id)} pars={pars} pmap={pmap} onClose={close} onPagar={(vid) => { close(); setModal({ type: "pagar", vid }); }} />}
       {modal?.type === "pagar"   && <PagarModal   venda={vmap[modal.vid]} pars={pars.filter((p) => p.vendaId === modal.vid)} onClose={close} onPay={pagarPar} />}
+
+      {showChangePwd && <ChangePasswordModal onSave={updatePassword} onClose={() => setShowChangePwd(false)} />}
 
       {!loaded && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(13,15,20,.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>

@@ -6,7 +6,7 @@ const DEFAULT_PERMS = Object.fromEntries(TABS.map((t) => [t, { view: false, edit
 
 export default function AdminPanel({ supa, currentUserId }) {
   const [users, setUsers] = useState([]);
-  const [form, setForm] = useState({ email: "", password: "", name: "" });
+  const [form, setForm] = useState({ email: "", password: "", confirm: "", name: "" });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -25,6 +25,8 @@ export default function AdminPanel({ supa, currentUserId }) {
 
   const createUser = async () => {
     if (!form.email || !form.password) { setError("Email e senha obrigatórios."); return; }
+    if (form.password.length < 6) { setError("Senha mínimo 6 caracteres."); return; }
+    if (form.password !== form.confirm) { setError("As senhas não coincidem."); return; }
     setCreating(true); setError(null); setSuccess(null);
     // Use a separate client so the admin's session is not replaced
     const { data: { supaUrl, supaKey } } = { data: { supaUrl: localStorage.getItem("lc_supa_url"), supaKey: localStorage.getItem("lc_supa_key") } };
@@ -49,7 +51,7 @@ export default function AdminPanel({ supa, currentUserId }) {
         id: userId, email: form.email, name: form.name, role: "user", permissions: DEFAULT_PERMS,
       });
     }
-    setForm({ email: "", password: "", name: "" });
+    setForm({ email: "", password: "", confirm: "", name: "" });
     setSuccess("Usuário criado.");
     setCreating(false);
     load();
@@ -88,10 +90,14 @@ export default function AdminPanel({ supa, currentUserId }) {
       {/* Create user */}
       <div className="card" style={{ padding: 20 }}>
         <div className="sy" style={{ fontWeight: 700, marginBottom: 14 }}>Criar Usuário</div>
+        <div style={{ background: "#78350f22", border: "1px solid #92400e44", borderRadius: 8, padding: "10px 14px", marginBottom: 14, color: "#fbbf24", fontSize: 12 }}>
+          Este sistema está na internet. Use uma senha segura: mínimo 8 caracteres, letras, números e símbolos.
+        </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <input className="inp" placeholder="Nome" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} style={{ flex: 1, minWidth: 140 }} />
           <input className="inp" placeholder="Email *" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} style={{ flex: 1, minWidth: 180 }} />
           <input className="inp" placeholder="Senha *" type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} style={{ flex: 1, minWidth: 140 }} />
+          <input className="inp" placeholder="Confirmar senha *" type="password" value={form.confirm} onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))} style={{ flex: 1, minWidth: 140 }} />
           <button className="btn prim" onClick={createUser} disabled={creating} style={{ whiteSpace: "nowrap" }}>
             {creating ? "Criando..." : "+ Criar"}
           </button>
