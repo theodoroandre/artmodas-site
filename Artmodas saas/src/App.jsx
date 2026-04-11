@@ -198,17 +198,21 @@ function ResetPasswordScreen({ onSave }) {
 }
 
 // ---- Change Password Modal ----
-function ChangePasswordModal({ onSave, onClose }) {
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm]   = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState(null);
-  const [done, setDone]         = useState(false);
+function ChangePasswordModal({ supa, email, onSave, onClose }) {
+  const [oldPassword, setOldPassword] = useState("");
+  const [password, setPassword]       = useState("");
+  const [confirm, setConfirm]         = useState("");
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState(null);
+  const [done, setDone]               = useState(false);
 
   const handleSave = async () => {
-    if (password.length < 6) { setError("Mínimo 6 caracteres."); return; }
+    if (!oldPassword) { setError("Informe a senha atual."); return; }
+    if (password.length < 6) { setError("Nova senha: mínimo 6 caracteres."); return; }
     if (password !== confirm) { setError("As senhas não coincidem."); return; }
     setLoading(true); setError(null);
+    const { error: signInErr } = await supa.auth.signInWithPassword({ email, password: oldPassword });
+    if (signInErr) { setError("Senha atual incorreta."); setLoading(false); return; }
     const { error: err } = await onSave(password);
     if (err) { setError(err.message); setLoading(false); }
     else setDone(true);
@@ -228,6 +232,8 @@ function ChangePasswordModal({ onSave, onClose }) {
             <div style={{ background: "#78350f22", border: "1px solid #92400e44", borderRadius: 8, padding: "10px 14px", marginBottom: 14, color: "#fbbf24", fontSize: 12 }}>
               Este sistema está na internet. Use uma senha segura: mínimo 8 caracteres, letras, números e símbolos.
             </div>
+            <input className="inp" placeholder="Senha atual" type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)}
+              style={{ width: "100%", marginBottom: 8, boxSizing: "border-box" }} />
             <input className="inp" placeholder="Nova senha" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
               style={{ width: "100%", marginBottom: 8, boxSizing: "border-box" }} />
             <input className="inp" placeholder="Confirmar nova senha" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
@@ -415,7 +421,7 @@ function MainApp({ supa, profile, isAdmin, canView, canEdit, signOut, updatePass
       {modal?.type === "detCli"  && <DetCliModal  cli={modal.cli} vendas={vendas.filter((v) => v.cliId === modal.cli.id)} pars={pars} pmap={pmap} onClose={close} onPagar={(vid) => { close(); setModal({ type: "pagar", vid }); }} />}
       {modal?.type === "pagar"   && <PagarModal   venda={vmap[modal.vid]} pars={pars.filter((p) => p.vendaId === modal.vid)} onClose={close} onPay={pagarPar} />}
 
-      {showChangePwd && <ChangePasswordModal onSave={updatePassword} onClose={() => setShowChangePwd(false)} />}
+      {showChangePwd && <ChangePasswordModal supa={supa} email={profile?.email} onSave={updatePassword} onClose={() => setShowChangePwd(false)} />}
 
       {!loaded && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(13,15,20,.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
