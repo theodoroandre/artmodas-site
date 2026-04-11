@@ -29,11 +29,24 @@ export default function AdminPanel({ supa, currentUserId }) {
     // Use a separate client so the admin's session is not replaced
     const { data: { supaUrl, supaKey } } = { data: { supaUrl: localStorage.getItem("lc_supa_url"), supaKey: localStorage.getItem("lc_supa_key") } };
     const tmpSupa = createClient(supaUrl, supaKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data, error: err } = await tmpSupa.auth.signUp({ email: form.email, password: form.password });
-    if (err) { setError(err.message); setCreating(false); return; }
-    if (data.user) {
+    let userId = null;
+    const { data, error: signUpErr } = await tmpSupa.auth.signUp({ email: form.email, password: form.password });
+    if (signUpErr) {
+      if (signUpErr.message === "User already registered") {
+        // User exists in auth but was removed from user_profiles — sign in to recover the ID
+        const { data: signInData, error: signInErr } = await tmpSupa.auth.signInWithPassword({ email: form.email, password: form.password });
+        if (signInErr) { setError("Usuário já existe no sistema de autenticação. Verifique a senha informada."); setCreating(false); return; }
+        userId = signInData.user?.id;
+        await tmpSupa.auth.signOut();
+      } else {
+        setError(signUpErr.message); setCreating(false); return;
+      }
+    } else {
+      userId = data.user?.id;
+    }
+    if (userId) {
       await supa.from("user_profiles").upsert({
-        id: data.user.id, email: form.email, name: form.name, role: "user", permissions: DEFAULT_PERMS,
+        id: userId, email: form.email, name: form.name, role: "user", permissions: DEFAULT_PERMS,
       });
     }
     setForm({ email: "", password: "", name: "" });
