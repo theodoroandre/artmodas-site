@@ -85,7 +85,7 @@ export default function VendaModal({ prods, clis, onClose, onSave }) {
                       <div key={i.pid} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#0d0f14", borderRadius: 7, padding: "8px 12px", marginBottom: 6 }}>
                         <span style={{ fontSize: 13 }}>{prod?.nome} × {i.qty}</span>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span style={{ color: "#6366f1", fontWeight: 600 }}>{R$(i.qty * i.preco)}</span>
+                          <span style={{ color: i.preco < (pmap[i.pid]?.preco ?? 0) ? "#ef4444" : "#6366f1", fontWeight: 600 }}>{R$(i.qty * i.preco)}</span>
                           <button onClick={() => remItem(i.pid)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>×</button>
                         </div>
                       </div>

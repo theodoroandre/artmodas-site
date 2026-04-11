@@ -30,6 +30,7 @@ export default function Vendas({ vendas, cmap, pmap, pars, canEdit, onNova, onPa
           const pago = vPars.reduce((a, p) => a + p.pago, 0);
           const pct = vPars.length ? Math.round((pago / v.total) * 100) : 100;
           const atras = vPars.filter((p) => stPar(p) === "vencido").length;
+          const temDesconto = v.itens.some((i) => i.preco < (pmap[i.pid]?.preco ?? 0));
           return (
             <div key={v.id} className="card" style={{ padding: 18 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
@@ -70,7 +71,7 @@ export default function Vendas({ vendas, cmap, pmap, pars, canEdit, onNova, onPa
                   )}
                 </div>
                 <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-                  <span className="sy" style={{ fontWeight: 700, fontSize: 20 }}>{R$(v.total)}</span>
+                  <span className="sy" style={{ fontWeight: 700, fontSize: 20, color: temDesconto ? "#ef4444" : undefined }}>{R$(v.total)}</span>
                   {canEdit && v.pg === "credito_loja" && pct < 100 && (
                     <button className="btn prim" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => onPagar(v.id)}>Registrar Pag.</button>
                   )}
