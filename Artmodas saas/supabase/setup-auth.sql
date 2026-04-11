@@ -41,9 +41,10 @@ create or replace trigger on_auth_user_created
 do $$
 declare t text;
 begin
-  foreach t in array array['produtos','clientes','vendas','parcelamentos','movimentacoes','logs']
+  foreach t in array array['produtos','clientes','vendas','venda_itens','parcelamentos','pagamentos','movimentacoes','logs']
   loop
     execute format('drop policy if exists "anon_all" on %I', t);
+    execute format('drop policy if exists "auth_all" on %I', t);
     execute format('create policy "auth_all" on %I for all to authenticated using (true) with check (true)', t);
   end loop;
 end $$;
