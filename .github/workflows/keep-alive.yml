@@ -1,0 +1,29 @@
+name: Keep Supabase Alive
+
+# Evita o auto-pause do Supabase (plano free pausa apos 7 dias sem
+# atividade de API). Faz uma requisicao real ao projeto a cada 2 dias.
+# Atividade interna do banco (pg_cron) NAO conta — o ping precisa ser externo.
+
+on:
+  schedule:
+    - cron: "0 12 */2 * *"   # a cada 2 dias, 12:00 UTC
+  workflow_dispatch:          # permite rodar manualmente pelo Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: "https://wyxexheuhhzfxhqmjasc.supabase.co"
+          SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5eGV4aGV1aGh6ZnhocW1qYXNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4Mjk4OTAsImV4cCI6MjA5MTQwNTg5MH0._Fji_AZaYlWEYiHc3TXSSavBHTDczQTchGbEdreagYE"
+        run: |
+          echo "Pinging $SUPABASE_URL ..."
+          curl -fsS "$SUPABASE_URL/rest/v1/" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -o /dev/null -w "REST -> HTTP %{http_code}\n"
+          curl -fsS "$SUPABASE_URL/auth/v1/health" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -o /dev/null -w "AUTH -> HTTP %{http_code}\n"
+          echo "Ping concluido com sucesso."
