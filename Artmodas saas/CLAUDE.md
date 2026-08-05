@@ -26,6 +26,33 @@ No test or lint scripts are configured.
 ### Deployment
 The app is deployed at a subpath (`base: "/artmodas-site/"` in `vite.config.js`). The build output goes to `/dist`.
 
+### Supabase free-tier auto-pause (keep-alive)
+The project runs on the Supabase **free plan**, which pauses projects with insufficient
+activity. `.github/workflows/keep-alive.yml` (repo root, above this folder) prevents that.
+
+**The rule is not "7 days with zero activity".** Per the
+[Supabase docs](https://supabase.com/docs/guides/platform/free-project-pausing), a project
+is paused when it lacks *sufficient* database activity over the past week — the docs ask for
+"a few user requests to the database each day".
+
+This was learned the hard way: the original workflow pinged once every 2 days (~0.5 req/day).
+It ran 28 consecutive times returning HTTP 200 between 2026-06-09 and 2026-07-31, and the
+project was **still paused on 2026-08-01**. The pings were real; the volume was too low.
+Current setting: every 6h x 3 table queries + auth health = ~12 requests/day.
+
+Two failure modes to keep in mind:
+- **Paused project ⇒ DNS is removed.** The hostname returns `NXDOMAIN` and curl reports
+  `Could not resolve host` / HTTP `000`. It does *not* return HTTP 540. An `NXDOMAIN` on
+  `*.supabase.co` means paused, not deleted — the data is intact.
+- **GitHub disables scheduled workflows after 60 days without commits.** If the repo goes
+  quiet, this cron silently stops firing. Any commit resets that counter.
+
+Recovery when paused: `restore_project` via the Supabase MCP, or "Resume project" in the
+dashboard. There is a **90-day window** to restore before only a downloadable backup remains.
+Restore takes ~3 minutes; DNS returns first, then the API (`521` → `404` → `200`).
+
+The only guaranteed fix is upgrading to the Pro plan — paid projects are never auto-paused.
+
 ### State & Data Flow
 All server state is managed in `src/useSupabase.js`, a single large hook that:
 - Connects to Supabase (credentials stored in `localStorage` and set via UI)

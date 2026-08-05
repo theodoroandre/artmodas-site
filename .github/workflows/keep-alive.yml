@@ -1,12 +1,26 @@
 name: Keep Supabase Alive
 
-# Evita o auto-pause do Supabase (plano free pausa apos 7 dias sem
-# atividade de API). Faz uma requisicao real ao projeto a cada 2 dias.
+# Evita o auto-pause do Supabase no plano free.
+#
+# REGRA REAL (https://supabase.com/docs/guides/platform/free-project-pausing):
+# nao e "7 dias sem NENHUMA atividade" — o Supabase pausa projetos com
+# atividade INSUFICIENTE avaliada na ultima semana. A doc pede
+# "a few user requests to the database each day".
+#
+# Historico: a versao anterior pingava 1x a cada 2 dias (~0,5 req/dia).
+# Rodou 28x seguidas com HTTP 200 entre 09/06 e 31/07/2026 e mesmo assim
+# o projeto foi pausado em 01/08/2026 — volume abaixo do limiar diario.
+# Por isso agora sao 4 execucoes/dia x 3 queries = ~12 requests/dia.
+#
 # Atividade interna do banco (pg_cron) NAO conta — o ping precisa ser externo.
+#
+# ATENCAO: o GitHub desativa workflows agendados apos 60 dias sem commits
+# no repositorio. Se o repo ficar parado, este cron para de disparar
+# silenciosamente. Qualquer commit reinicia a contagem.
 
 on:
   schedule:
-    - cron: "0 12 */2 * *"   # a cada 2 dias, 12:00 UTC
+    - cron: "0 */6 * * *"     # a cada 6h (00, 06, 12, 18 UTC) = 4x/dia
   workflow_dispatch:          # permite rodar manualmente pelo Actions
 
 jobs:
@@ -19,18 +33,39 @@ jobs:
           SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5eGV4aGV1aGh6ZnhocW1qYXNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4Mjk4OTAsImV4cCI6MjA5MTQwNTg5MH0._Fji_AZaYlWEYiHc3TXSSavBHTDczQTchGbEdreagYE"
         run: |
           echo "Pinging $SUPABASE_URL ..."
+          falhas=0
 
-          # Query real no Postgres via PostgREST. O RLS filtra as linhas
+          # Queries reais no Postgres via PostgREST. O RLS filtra as linhas
           # (retorna []), mas a consulta executa no banco -> conta como
           # atividade. O header apikey e exigido pelo gateway em toda req.
-          curl -fsS "$SUPABASE_URL/rest/v1/vendas?select=id&limit=1" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            -o /dev/null -w "DB query (vendas) -> HTTP %{http_code}\n"
+          # Varias tabelas por execucao para elevar o volume diario.
+          for tabela in vendas produtos clientes; do
+            code=$(curl -sS "$SUPABASE_URL/rest/v1/$tabela?select=id&limit=1" \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              -o /dev/null -w "%{http_code}" --max-time 30) || code="000"
+            printf "DB query (%-9s) -> HTTP %s\n" "$tabela" "$code"
+            case "$code" in
+              2*) ;;
+              *) falhas=$((falhas + 1)) ;;
+            esac
+          done
 
           # Health do servico de auth (GoTrue) — atividade extra.
-          curl -fsS "$SUPABASE_URL/auth/v1/health" \
+          code=$(curl -sS "$SUPABASE_URL/auth/v1/health" \
             -H "apikey: $SUPABASE_ANON_KEY" \
-            -o /dev/null -w "Auth health        -> HTTP %{http_code}\n"
+            -o /dev/null -w "%{http_code}" --max-time 30) || code="000"
+          echo "Auth health           -> HTTP $code"
+          case "$code" in
+            2*) ;;
+            *) falhas=$((falhas + 1)) ;;
+          esac
+
+          # Sem -f no curl: assim todas as chamadas executam mesmo que uma
+          # falhe (o -f abortava o restante e reduzia ainda mais o volume).
+          if [ "$falhas" -gt 0 ]; then
+            echo "::error::$falhas de 4 chamadas falharam. HTTP 000 = DNS nao resolve (projeto provavelmente PAUSADO)."
+            exit 1
+          fi
 
           echo "Ping concluido com sucesso."
